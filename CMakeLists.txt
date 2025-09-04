@@ -13,6 +13,7 @@ include_directories("${PROJECT_SOURCE_DIR}/include/output")
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake;${CMAKE_MODULE_PATH}")
 
 include(cmake/DefaultBuildType.cmake)
+include(ExternalProject)
 
 
 option (USE_OTF "USE OTF library" OFF)
@@ -23,7 +24,23 @@ endif()
 
 option (USE_OTF2 "Use OTF2 library" ON)
 if (USE_OTF2)
-    find_package (OTF2)
+	find_package (OTF2)
+
+	if(NOT OTF2_FOUND)
+		message("Downloading OTF23.1 manually...")
+
+		# Set where OTF2 should be built and installed
+		set(OTF2_PREFIX ${CMAKE_BINARY_DIR}/otf2-install)
+
+		ExternalProject_Add(OTF2
+			URL https://perftools.pages.jsc.fz-juelich.de/cicd/otf2/tags/otf2-3.1/otf2-3.1.tar.gz
+			PREFIX ${CMAKE_BINARY_DIR}/otf2
+			CONFIGURE_COMMAND <SOURCE_DIR>/configure --prefix=${OTF2_PREFIX} # CXXFLAGS="-Wno-deprecated-enum-enum-conversion"
+			BUILD_COMMAND make -j
+			INSTALL_COMMAND make install
+		)
+	endif()
+
     set (HAVE_OTF2 OTF2_FOUND)
     set (VERSION_OTF2_MAJOR ${OTF2_VERSION_MAJOR})
     set (VERSION_OTF2_MINOR ${OTF2_VERSION_MINOR})
@@ -107,7 +124,12 @@ configure_file (
 add_executable (otf-profiler ${SOURCE_FILES})
 # Requiring language standard C++ 11
 target_compile_features(otf-profiler PUBLIC cxx_std_11)
-target_link_libraries(otf-profiler ${EXTRA_LIBS})
+target_link_directories(otf-profiler PRIVATE ${OTF2_PREFIX}/lib)
+target_link_libraries(otf-profiler ${EXTRA_LIBS} otf2)
+target_include_directories(otf-profiler PRIVATE
+	 ${PROJECT_SOURCE_DIR}/include
+	${OTF2_PREFIX}/include
+)
 
 # add the install targets
 install (TARGETS otf-profiler DESTINATION bin)
