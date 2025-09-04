@@ -8,8 +8,10 @@
 
 #include <cassert>
 #include <map>
+#include <string>
 #include <unordered_map>
 #include <cstdint>
+#include "otf2/OTF2_GeneralDefinitions.h"
 
 enum class MetricDataType : uint8_t {
     UINT64,  // OTF2_TYPE_UINT64
@@ -296,7 +298,11 @@ struct IoData {
     uint64_t num_bytes;
     uint64_t transfer_time;
     uint64_t nontransfer_time;
-    IoData() : num_operations(0), num_bytes(0), transfer_time(0), nontransfer_time(0) {}
+	/* File on which I/O has been performed */
+	OTF2_IoHandleRef io_handle;
+	/* Mode in which the op has been performed (read or write) */
+	std::string mode;
+    IoData() : num_operations(0), num_bytes(0), transfer_time(0), nontransfer_time(0), mode("-") {}
 };
 
 #endif

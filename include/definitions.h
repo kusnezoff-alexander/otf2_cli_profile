@@ -3,6 +3,7 @@
  Authors: Maximillian Neumann, Denis Hünich, Jens Doleschal
 */
 
+#pragma once
 #ifndef DEFINITIONS_H
 #define DEFINITIONS_H
 
@@ -377,6 +378,9 @@ struct IoHandle {
     // Defined by events, so we need to allow changes post-handle-definition
     // Ugly but that's the world we live in
     mutable std::set<std::string> modes;
+	// This is used to determine whether the last
+	// TODO: verify this approach is valid (i.e. that no race condition exists)
+	mutable std::string last_io_mode;
 };
 
 struct Definitions {
@@ -385,6 +389,7 @@ struct Definitions {
     DefinitionType<uint64_t, Metric_Class>  metric_classes;
     DefinitionType<paradigm_id_t, Paradigm> paradigms;
     DefinitionType<paradigm_id_t, Paradigm> io_paradigms;
+	/* TODO: What does the uint64_t here refer to?? Some internal indexing or OTf2-Refs?? */
     DefinitionType<uint64_t, IoHandle>      iohandles;
     DefinitionType<uint64_t, Group>         groups;
     SystemTree                              system_tree{};

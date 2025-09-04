@@ -18,6 +18,7 @@ struct AllData {
     /*meta meta*/
     meta_data metaData;
 
+	/* Definitions include global definitions like: regions, paradigms, metrics, I/O paradigms, I/O handles, .. */
     definitions::Definitions definitions;
     uint64_t                 traceID;
 

@@ -597,9 +597,11 @@ OTF2_CallbackCode OTF2Reader::handle_io_begin(OTF2_LocationRef locationID, OTF2_
     switch (mode) {
         case OTF2_IO_OPERATION_MODE_READ:
             h->modes.insert("R");
+			h->last_io_mode = std::string("R");
             break;
         case OTF2_IO_OPERATION_MODE_WRITE:
             h->modes.insert("W");
+			h->last_io_mode = std::string("W");
             break;
         case OTF2_IO_OPERATION_MODE_FLUSH:
         default:
@@ -622,6 +624,8 @@ OTF2_CallbackCode OTF2Reader::handle_io_end(OTF2_LocationRef locationID, OTF2_Ti
             return OTF2_CALLBACK_ERROR;  // event on undefined IO handle
         uint64_t p = h->io_paradigm;
         alldata->io_data[p].num_operations++;
+		alldata->io_data[p].io_handle = handle;
+		alldata->io_data[p].mode= h->last_io_mode;
         if (bytesResult != OTF2_UNDEFINED_UINT64) {
             alldata->io_data[p].num_bytes += bytesResult;
             alldata->io_data[p].transfer_time += duration;

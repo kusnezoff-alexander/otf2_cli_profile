@@ -2,6 +2,7 @@
  This is part of the OTF-Profiler. Copyright by ZIH, TU Dresden 2016-2018.
  Authors: Maximillian Neumann, Denis Hünich, Jens Doleschal, Bill Williams
 */
+#include <cstdint>
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -33,13 +34,17 @@ class PlainWriter {
     void EndArray() const {}
 };
 
+/* Arbitrary labeled Uint64-typed data associated with a statistic */
 struct ProfileEntry {
+	/* Internal storage of labeled integer-data */
     std::map<std::string, uint64_t> entries;
-    void                            add_data(const std::string& key, uint64_t value) {
+
+    void add_data(const std::string& key, uint64_t value) {
         if (value == 0 || value == (uint64_t)(-1))
             return;
         entries[key] += value;
     }
+
     template <typename Writer>
     void WriteProfile(Writer& w) const {
         w.StartObject();
@@ -53,8 +58,13 @@ struct ProfileEntry {
 
 using definitions::Definitions;
 using definitions::IoHandle;
+
+/**
+ *	Statistics stored per file
+ */
 struct FileInfo {
     FileInfo() : parentfile(NULL) {}
+	/* Construct FileInfo given file_ref-id (from Definitions) */
     FileInfo(const Definitions& defs, uint64_t id) {
         parentfile           = NULL;
         const IoHandle* self = defs.iohandles.get(id);
@@ -67,6 +77,7 @@ struct FileInfo {
         paradigm.insert(defs.io_paradigms.get(self->io_paradigm)->name);
         modes = self->modes;
     }
+
     void operator+=(const FileInfo& rhs) {
         filename = rhs.filename;
         if (rhs.parentfile && !parentfile)
@@ -74,9 +85,22 @@ struct FileInfo {
         std::copy(rhs.paradigm.begin(), rhs.paradigm.end(), std::inserter(paradigm, paradigm.begin()));
         std::copy(rhs.modes.begin(), rhs.modes.end(), std::inserter(modes, modes.begin()));
     }
+
     std::string           filename;
-    std::set<std::string> paradigm, modes;
+	/* I/O Paradigms used to perform I/O on file */
+    std::set<std::string> paradigm;
+	/* Modes in which file was opened (read/write) */
+	std::set<std::string> modes;
     FileInfo*             parentfile;
+	// WIP:
+	/* Bytes read from this file */
+	std::uint64_t		  bytes_read;
+	/* Bytes written to this file */
+	std::uint64_t		  bytes_write;
+	/* Time spent reading/writing the file */
+	std::uint64_t		  time_spent_in_ticks;
+	// TODO: time spent for meta-ops
+
     template <typename Writer>
     void WriteFileInfo(Writer& w) const {
         w.StartObject();
@@ -101,26 +125,41 @@ struct FileInfo {
         } else {
             w.Null();
         }
+
+		w.Key("#Bytes read");
+		w.Uint64(bytes_read); // TODO
+		w.Key("#Bytes write");
+		w.Uint64(bytes_write); // TODO
         w.EndObject();
     }
 };
 
 struct WorkflowProfile {
     uint64_t                            job_id;
+	/* Nr of Nodes used during execution of traced program */
     uint32_t                            node_count;
+	/* Nr of Processes used during execution of traced program */
     uint32_t                            process_count;
+	/* Nr of Threads used during execution of traced program */
     uint32_t                            thread_count;
+	/* Ticks per second */
     uint64_t                            timer_resolution;
     std::map<std::string, uint64_t>     counters;
     std::map<std::string, ProfileEntry> functions_by_paradigm;
     std::map<std::string, ProfileEntry> messages_by_paradigm;
+	/* Nr of collective operations executed per paradigm */
     std::map<std::string, ProfileEntry> collops_by_paradigm;
+	/* Nr of I/O operations executed per I/O paradigm */
     std::map<std::string, ProfileEntry> io_ops_by_paradigm;
+	/* Statistics per file */
     std::map<std::string, FileInfo>     file_data;
+	/* Time (in ticks) spent executing parallel regions */
     uint64_t                            parallel_region_time;
+	/* Time (in ticks) spent executing serial regions */
     uint64_t                            serial_time;
     uint64_t                            num_functions;
     uint64_t                            num_invocations;
+	/* Path to otf2 trace-file (for which profile is being generated) */
     std::string                         filename;
     uint64_t                            traceID;
     template <typename Writer>
@@ -180,12 +219,14 @@ void WorkflowProfile::WriteProfile(Writer& w) const {
     WriteMapUnderKey("Messages", messages_by_paradigm, w);
     WriteMapUnderKey("CollectiveOperations", collops_by_paradigm, w);
     WriteMapUnderKey("IOOperations", io_ops_by_paradigm, w);
+
     w.Key("Files");
     w.StartArray();
     for (auto f : file_data) {
         f.second.WriteFileInfo(w);
     }
     w.EndArray();
+
     w.Key("ParallelRegionTime");
     w.Uint64(parallel_region_time);
     w.Key("SerialRegionTime");
@@ -279,15 +320,33 @@ bool CreateJSON(AllData& alldata) {
     static std::string transfer_time = "TransferOperationTime";
     for (auto io_entry : alldata.io_data) {
         std::string paradigm_name = alldata.definitions.io_paradigms.get(io_entry.first)->name;
+		IoData io_data = io_entry.second;
         cout << "Summarizing io for " << paradigm_name << std::endl;
-        profile.io_ops_by_paradigm[paradigm_name].entries[bytestr] += io_entry.second.num_bytes;
-        profile.io_ops_by_paradigm[paradigm_name].entries[countstr] += io_entry.second.num_operations;
-        profile.io_ops_by_paradigm[paradigm_name].entries[transfer_time] += io_entry.second.transfer_time;
-        profile.io_ops_by_paradigm[paradigm_name].entries[meta_time] += io_entry.second.nontransfer_time;
+        profile.io_ops_by_paradigm[paradigm_name].entries[bytestr] += io_data.num_bytes;
+        profile.io_ops_by_paradigm[paradigm_name].entries[countstr] += io_data.num_operations;
+        profile.io_ops_by_paradigm[paradigm_name].entries[transfer_time] += io_data.transfer_time;
+        profile.io_ops_by_paradigm[paradigm_name].entries[meta_time] += io_data.nontransfer_time;
+
+		/* Store I/O size and time statistics also per file */
+		auto io_handle = alldata.definitions.iohandles.get(io_data.io_handle);
+		std::string file_name = io_handle->name;
+		uint64_t bytes_read, bytes_write;
+		if(io_data.mode=="R") {
+			bytes_read = io_data.num_bytes;
+			bytes_write = 0;
+		}else if(io_data.mode=="W") {
+			bytes_read = 0;
+			bytes_write = io_data.num_bytes;
+		} // else: Error?
+
+		profile.file_data[file_name].bytes_write += bytes_write;
+		profile.file_data[file_name].bytes_read += bytes_read;
     }
     for (auto file_entry : alldata.definitions.iohandles.get_all()) {
         auto file_handle = file_entry.second;
-        profile.file_data[file_handle.name] += FileInfo(alldata.definitions, file_entry.first);
+		uint64_t file_ref = file_entry.first;
+		cout << "FIle_ref: " << file_ref << std::endl;
+        profile.file_data[file_handle.name] += FileInfo(alldata.definitions, file_ref);
     }
     profile.filename = alldata.params.input_file_name;
     profile.traceID  = alldata.traceID;

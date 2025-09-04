@@ -38,6 +38,14 @@ if (USE_OTF2)
 			CONFIGURE_COMMAND <SOURCE_DIR>/configure --prefix=${OTF2_PREFIX} # CXXFLAGS="-Wno-deprecated-enum-enum-conversion"
 			BUILD_COMMAND make -j
 			INSTALL_COMMAND make install
+
+			# TODO: prevent rebuilt on every compilation (the below doesnt work..)
+			# Set the directory where the file is downloaded and cached
+		  	DOWNLOAD_DIR ${CMAKE_BINARY_DIR}/downloads
+			# These prevent re-downloading if already built
+		  	DOWNLOAD_NO_EXTRACT FALSE
+		  	UPDATE_DISCONNECTED TRUE
+			BUILD_ALWAYS OFF
 		)
 	endif()
 

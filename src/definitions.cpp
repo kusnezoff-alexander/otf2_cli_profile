@@ -4,6 +4,7 @@
 */
 
 #include "definitions.h"
+
 namespace definitions {
 
 SystemIterator SystemTree::begin() const { return SystemIterator(root); }

@@ -8,7 +8,9 @@
 
 #include <chrono>
 #include <iostream>
+#include <map>
 #include <string>
+#include <vector>
 
 #include "otf-profiler-config.h"
 
@@ -25,6 +27,8 @@ You then surround the function call of the new module like this:
     alldata.tm.start(ScopeID::<scope_id>);
     <module_call>(alldata);
     alldata.tm.stop(ScopeID::<scope_id>);
+
+Example for CUBE:
 */
 
 enum class ScopeID : uint8_t { TOTAL, COLLECT, REDUCE, CUBE, JSON ,DOT};
@@ -105,6 +109,7 @@ struct Params {
     bool        output_type_set    = false;
     bool        create_cube        = false;
     bool        create_json        = false;
+    bool        create_io_csv	   = false;
     bool        create_dot         = false;
     bool        data_dump           = false;
     bool        summarize_it       = false;  // TODO added for testing
@@ -130,6 +135,7 @@ struct Params {
                           << std::endl
                           << "      --cube              generates CUBE xml profile" << std::endl
                           << "      --json              generates json ouptut file" << std::endl
+                          << "      --io 				collect detailed metrics about I/O, only supported with OTF2 (WIP)" << std::endl
                           << "      --dot               generates dot file for drawing graphs" << std::endl
                           << "        -fi, --filter <percent>    only show path, where a node took at least num \% of total time" << std::endl
                           << "        -t, --top <n>     only show top num nodes" << std::endl
