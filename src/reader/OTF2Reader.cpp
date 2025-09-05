@@ -723,6 +723,7 @@ OTF2_CallbackCode OTF2Reader::handle_metric(OTF2_LocationRef locationID, OTF2_Ti
     return OTF2_CALLBACK_SUCCESS;
 }
 
+/* Region Enter */
 OTF2_CallbackCode OTF2Reader::handle_enter(OTF2_LocationRef locationID, OTF2_TimeStamp time, uint64_t eventPosition,
                                            void* userData, OTF2_AttributeList* attributeList, OTF2_RegionRef region)
 
@@ -732,6 +733,10 @@ OTF2_CallbackCode OTF2Reader::handle_enter(OTF2_LocationRef locationID, OTF2_Tim
 
     if (!node_stack.empty()) {
         auto tmp = node_stack.front().node_p;
+
+		auto parent_region = tmp->function_id;
+		auto current_region = region;
+		alldata->parent_regions_by_callcount[region][parent_region] += 1;
 
         auto tmp_child = tmp->children.find(region);
         if (tmp_child == tmp->children.end()) {

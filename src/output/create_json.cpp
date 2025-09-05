@@ -2,6 +2,7 @@
  This is part of the OTF-Profiler. Copyright by ZIH, TU Dresden 2016-2018.
  Authors: Maximillian Neumann, Denis Hünich, Jens Doleschal, Bill Williams
 */
+#include <algorithm>
 #include <cstdint>
 #include <fstream>
 #include <iostream>
@@ -139,6 +140,93 @@ struct FileInfo {
     }
 };
 
+/* TODO: NEXT */
+struct RegionInfo {
+    RegionInfo() {}
+	/* Construct FileInfo given file_ref-id (from Definitions) */
+    RegionInfo(const Definitions& defs, uint64_t id) {
+        const IoHandle* self = defs.iohandles.get(id);
+        if (!self)
+            return;
+        const IoHandle* parent = defs.iohandles.get(self->parent);
+        region_name= self->name;
+        paradigm.insert(defs.io_paradigms.get(self->io_paradigm)->name);
+        modes = self->modes;
+    }
+
+    void operator+=(const FileInfo& rhs) {
+        region_name = rhs.filename;
+        // if (rhs.parentfile && !parentfile)
+        //     parentfile = rhs.parentfile;
+        std::copy(rhs.paradigm.begin(), rhs.paradigm.end(), std::inserter(paradigm, paradigm.begin()));
+        std::copy(rhs.modes.begin(), rhs.modes.end(), std::inserter(modes, modes.begin()));
+
+		// TODO: Size/Timing stats are collected elsewhere (`bytes_read`,`bytes_write`,`time_spent_in_ticks`)
+    }
+
+	/* Region/Function name */
+    std::string           region_name;
+	// std::string 		  file_name;
+	/* File in which this region/functions is defined */
+	/* I/O Paradigms used to perform I/O on file */
+    std::set<std::string> paradigm;
+	/* Modes in which file was opened (read/write) */
+	std::set<std::string> modes;
+	// WIP:
+	/* Bytes read from this file */
+	std::uint64_t		  bytes_read=0;
+	/* Bytes written to this file */
+	std::uint64_t		  bytes_write=0;
+	/* Time spent reading/writing the file */
+	std::uint64_t		  time_spent_in_ticks=0;
+	/* Top 5 other regions that called this region (by nr of calls) with `std::string` being the name of the calling region
+	 * @note data is taken from @ref{AllData} (field `const_cast<std::map<const Region*, uint64_t>&>(my_map);`)
+	 * */
+	std::map<std::string, uint64_t> region_callees_top5; // TODO
+	// TODO: time spent for meta-ops
+
+    template <typename Writer>
+    void WriteRegionInfo(Writer& w) const {
+        w.StartObject();
+        w.Key("RegionName");
+        w.String(region_name.c_str());
+
+        w.Key("IoParadigm");
+        w.StartArray();
+        for (auto pstr : paradigm) {
+            w.String(pstr.c_str());
+        }
+        w.EndArray();
+        w.Key("AccessModes");
+        std::string merged_modes;
+        for (auto modestr : modes) {
+            merged_modes += modestr;
+        }
+        w.String(merged_modes.c_str());
+
+		w.Key("#Bytes read");
+		w.Uint64(bytes_read);
+		w.Key("#Bytes write");
+		w.Uint64(bytes_write);
+		w.Key("Ticks spent");
+		w.Uint64(time_spent_in_ticks);
+
+		w.Key("Top 5 Callees");
+        w.StartArray();
+        for (auto pstr : region_callees_top5) {
+			w.StartObject();
+			w.Key("Region name");
+            w.String(pstr.first.c_str());
+			w.Key("Nr calls");
+			w.Uint64(pstr.second);
+			w.EndObject();
+        }
+        w.EndArray();
+
+        w.EndObject();
+    }
+};
+
 /**
  * Data structure for storing resulting profile to output
  */
@@ -162,7 +250,7 @@ struct WorkflowProfile {
 	/* Statistics per file */
     std::map<std::string, FileInfo>     file_data;
 	/* Statistics per srcline in a region */
-	std::map<std::string, ProfileEntry> io_per_region; // TODO !
+	std::map<std::string, RegionInfo>   io_per_region; // TODO !
 	/* Time (in ticks) spent executing parallel regions */
     uint64_t                            parallel_region_time;
 	/* Time (in ticks) spent executing serial regions */
@@ -237,7 +325,14 @@ void WorkflowProfile::WriteProfile(Writer& w) const {
     }
     w.EndArray();
 
-    WriteMapUnderKey("Regions", io_per_region, w);
+    w.Key("Regions");
+    w.StartArray();
+    for (auto f : io_per_region) {
+        f.second.WriteRegionInfo(w);
+    }
+    w.EndArray();
+
+    // WriteMapUnderKey("Regions", io_per_region, w);
 
     w.Key("ParallelRegionTime");
     w.Uint64(parallel_region_time);
@@ -392,12 +487,29 @@ bool CreateJSON(AllData& alldata) {
 		} else {
 			cout << "[WARNING] Invalid io-access-mode:" << io_data.mode << ", Nr bytes worked on are:" << io_data.num_bytes << std::endl;
 		}
-		// profile.file_data[file_name].filename = file_name;
-		auto idx = region_name + ":" + begin_src_line + "-" + end_src_line;
-		profile.io_per_region[idx].entries["#Bytes write"] += bytes_write;
-		profile.io_per_region[idx].entries["#Bytes read"] += bytes_read;
-		profile.io_per_region[idx].entries["Ticks spent"] += io_data.transfer_time;
-		profile.io_per_region[idx].entries["Ticks spent"] += io_data.nontransfer_time; // TODO: output `nontransfer_time` separately?
+
+		auto idx = region_name;
+		profile.io_per_region[idx].region_name += region_name;
+		profile.io_per_region[idx].bytes_write += bytes_write;
+		profile.io_per_region[idx].bytes_read += bytes_read;
+		profile.io_per_region[idx].time_spent_in_ticks += io_data.transfer_time;
+		profile.io_per_region[idx].time_spent_in_ticks += io_data.nontransfer_time; // TODO: output `nontransfer_time` separately?
+
+		// TODO: get 5 top-calling callees from `alldata`:
+		auto all_callee_regions = alldata.parent_regions_by_callcount[io_data.region];
+		std::vector<std::pair<OTF2_RegionRef, uint64_t>> all_callee_regions_sorted(all_callee_regions.begin(), all_callee_regions.end()); // map to vector of pairs to sort then
+		std::sort(all_callee_regions_sorted.begin(), all_callee_regions_sorted.end(), [](const std::pair<OTF2_RegionRef, uint64_t>& a, const std::pair<OTF2_RegionRef, uint64_t>& b) {
+			return a.second > b.second;  // Sort in descending order based on the value
+		});
+
+		// Step 3: Get the first 5 elements (top 5 largest values)
+		for (int i = 0; i < 5 && i < all_callee_regions_sorted.size(); ++i) {
+			auto parent_region_ref= all_callee_regions_sorted[i].first;
+			auto parent_region_name =  alldata.definitions.regions.get(parent_region_ref)->name;
+			auto call_count = all_callee_regions_sorted[i].second;
+
+			profile.io_per_region[idx].region_callees_top5[parent_region_name] = call_count;
+		}
 	}
 
     profile.filename = alldata.params.input_file_name;
