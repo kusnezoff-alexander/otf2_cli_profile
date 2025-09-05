@@ -585,7 +585,7 @@ struct PendingIoEvt {
 
 static std::map<uint64_t, PendingIoEvt> open_io_events;
 
-OTF2_CallbackCode OTF2Reader::handle_io_begin(OTF2_LocationRef locationID, OTF2_TimeStamp time, uint64_t eventPosition,
+OTF2_CallbackCode OTF2Reader::io_operation_begin_callback(OTF2_LocationRef locationID, OTF2_TimeStamp time, uint64_t eventPosition,
                                               void* userData, OTF2_AttributeList* attributeList,
                                               OTF2_IoHandleRef handle, OTF2_IoOperationMode mode,
                                               OTF2_IoOperationFlag flag, uint64_t bytesRequest, uint64_t matchingId) {
@@ -610,7 +610,7 @@ OTF2_CallbackCode OTF2Reader::handle_io_begin(OTF2_LocationRef locationID, OTF2_
 
     return OTF2_CALLBACK_SUCCESS;
 }
-OTF2_CallbackCode OTF2Reader::handle_io_end(OTF2_LocationRef locationID, OTF2_TimeStamp time, uint64_t eventPosition,
+OTF2_CallbackCode OTF2Reader::io_operation_complete_callback(OTF2_LocationRef locationID, OTF2_TimeStamp time, uint64_t eventPosition,
                                             void* userData, OTF2_AttributeList* attributeList, OTF2_IoHandleRef handle,
                                             uint64_t bytesResult, uint64_t matchingId) {
     auto* alldata     = static_cast<AllData*>(userData);
@@ -622,21 +622,31 @@ OTF2_CallbackCode OTF2Reader::handle_io_end(OTF2_LocationRef locationID, OTF2_Ti
         auto h = alldata->definitions.iohandles.get(handle);
         if (!h)
             return OTF2_CALLBACK_ERROR;  // event on undefined IO handle
-        uint64_t p = h->io_paradigm;
-        alldata->io_data[p].num_operations++;
-		alldata->io_data[p].io_handle = handle;
-		alldata->io_data[p].mode= h->last_io_mode;
-        if (bytesResult != OTF2_UNDEFINED_UINT64) {
-            alldata->io_data[p].num_bytes += bytesResult;
-            alldata->io_data[p].transfer_time += duration;
-        } else {
-            alldata->io_data[p].nontransfer_time += duration;
-        }
+
+		uint64_t p = h->io_paradigm;
+		// Store statistics 1) per paradigm, 2) per file (IoHandle), 3) per location (process/thread, maybe region?)
+		std::array<IoData*, 3> io_data_stats = {
+			&(alldata->io_data_per_paradigm[p]),
+			&(alldata->io_data_per_file[handle]),
+			&(alldata->io_data_per_location[locationID])
+		};
+
+		for(auto io_data: io_data_stats) {
+			io_data->num_operations++;
+			io_data->io_handle = handle;
+			io_data->mode= h->last_io_mode;
+			if (bytesResult != OTF2_UNDEFINED_UINT64) {
+				io_data->num_bytes += bytesResult;
+				io_data->transfer_time += duration;
+			} else {
+				io_data->nontransfer_time += duration;
+			}
+		}
     }
     return OTF2_CALLBACK_SUCCESS;
 }
 
-OTF2_CallbackCode OTF2Reader::handle_io_create_handle(OTF2_LocationRef locationID, OTF2_TimeStamp time,
+OTF2_CallbackCode OTF2Reader::io_create_handle_callback(OTF2_LocationRef locationID, OTF2_TimeStamp time,
                                                       uint64_t eventPosition, void* userData,
                                                       OTF2_AttributeList* attributeList, OTF2_IoHandleRef handle,
                                                       OTF2_IoAccessMode mode, OTF2_IoCreationFlag creationFlags,
@@ -1126,9 +1136,9 @@ bool OTF2Reader::readEvents(AllData& alldata) {
     OTF2_EvtReaderCallbacks_SetMpiCollectiveEndCallback(evt_callbacks, handle_mpi_collective_end);
 
     OTF2_EvtReaderCallbacks_SetMetricCallback(evt_callbacks, handle_metric);
-    OTF2_EvtReaderCallbacks_SetIoOperationBeginCallback(evt_callbacks, handle_io_begin);
-    OTF2_EvtReaderCallbacks_SetIoOperationCompleteCallback(evt_callbacks, handle_io_end);
-    OTF2_EvtReaderCallbacks_SetIoCreateHandleCallback(evt_callbacks, handle_io_create_handle);
+    OTF2_EvtReaderCallbacks_SetIoOperationBeginCallback(evt_callbacks, io_operation_begin_callback);
+    OTF2_EvtReaderCallbacks_SetIoOperationCompleteCallback(evt_callbacks, io_operation_complete_callback);
+    OTF2_EvtReaderCallbacks_SetIoCreateHandleCallback(evt_callbacks, io_create_handle_callback);
 #ifndef OTFPROFILE_MPI
 
     OTF2_DefReader* local_def_reader;

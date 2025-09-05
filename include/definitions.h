@@ -370,6 +370,7 @@ class SystemIterator {
     std::shared_ptr<SystemNode_t> root_ptr;
 };
 
+/* Represent a statistics associated with a file (?) */
 struct IoHandle {
     std::string name;
     uint32_t    io_paradigm;
@@ -380,6 +381,7 @@ struct IoHandle {
     mutable std::set<std::string> modes;
 	// This is used to determine whether the last
 	// TODO: verify this approach is valid (i.e. that no race condition exists)
+	// TODO: make `std::map<LocationId, std::string>` since several processes might open same file ?!`
 	mutable std::string last_io_mode;
 };
 

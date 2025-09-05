@@ -293,10 +293,14 @@ struct NodeData {
     NodeData(const CollopData& _c_data) : f_data(), m_data(), c_data(_c_data) {}
 };
 
+/* Stores I/O Statistics per I/O Handle */
 struct IoData {
+	/* Nr of I/O Ops that operated on the I/O Handle with which this IoData is associated */
     uint64_t num_operations;
     uint64_t num_bytes;
+	/* Time spent in I/O but during which bytes where read/written */
     uint64_t transfer_time;
+	/* Time spent in I/O but during which no bytes where read/written */
     uint64_t nontransfer_time;
 	/* File on which I/O has been performed */
 	OTF2_IoHandleRef io_handle;

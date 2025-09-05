@@ -84,6 +84,8 @@ struct FileInfo {
             parentfile = rhs.parentfile;
         std::copy(rhs.paradigm.begin(), rhs.paradigm.end(), std::inserter(paradigm, paradigm.begin()));
         std::copy(rhs.modes.begin(), rhs.modes.end(), std::inserter(modes, modes.begin()));
+
+		// TODO: Size/Timing stats are collected elsewhere (`bytes_read`,`bytes_write`,`time_spent_in_ticks`)
     }
 
     std::string           filename;
@@ -94,11 +96,11 @@ struct FileInfo {
     FileInfo*             parentfile;
 	// WIP:
 	/* Bytes read from this file */
-	std::uint64_t		  bytes_read;
+	std::uint64_t		  bytes_read=0;
 	/* Bytes written to this file */
-	std::uint64_t		  bytes_write;
+	std::uint64_t		  bytes_write=0;
 	/* Time spent reading/writing the file */
-	std::uint64_t		  time_spent_in_ticks;
+	std::uint64_t		  time_spent_in_ticks=0;
 	// TODO: time spent for meta-ops
 
     template <typename Writer>
@@ -318,36 +320,47 @@ bool CreateJSON(AllData& alldata) {
     }
     static std::string meta_time     = "MetaOperationTime";
     static std::string transfer_time = "TransferOperationTime";
-    for (auto io_entry : alldata.io_data) {
+
+	/* 1) Store stats per paradigm */
+	cout << "Nr io_data:" << alldata.io_data_per_paradigm.size() << std::endl;
+    for (auto io_entry : alldata.io_data_per_paradigm) {
         std::string paradigm_name = alldata.definitions.io_paradigms.get(io_entry.first)->name;
 		IoData io_data = io_entry.second;
-        cout << "Summarizing io for " << paradigm_name << std::endl;
+        cout << "Summarizing io for " << paradigm_name << " with bytes=" << io_data.num_bytes << std::endl;
         profile.io_ops_by_paradigm[paradigm_name].entries[bytestr] += io_data.num_bytes;
         profile.io_ops_by_paradigm[paradigm_name].entries[countstr] += io_data.num_operations;
         profile.io_ops_by_paradigm[paradigm_name].entries[transfer_time] += io_data.transfer_time;
         profile.io_ops_by_paradigm[paradigm_name].entries[meta_time] += io_data.nontransfer_time;
-
-		/* Store I/O size and time statistics also per file */
-		auto io_handle = alldata.definitions.iohandles.get(io_data.io_handle);
-		std::string file_name = io_handle->name;
-		uint64_t bytes_read, bytes_write;
-		if(io_data.mode=="R") {
-			bytes_read = io_data.num_bytes;
-			bytes_write = 0;
-		}else if(io_data.mode=="W") {
-			bytes_read = 0;
-			bytes_write = io_data.num_bytes;
-		} // else: Error?
-
-		profile.file_data[file_name].bytes_write += bytes_write;
-		profile.file_data[file_name].bytes_read += bytes_read;
     }
+
     for (auto file_entry : alldata.definitions.iohandles.get_all()) {
         auto file_handle = file_entry.second;
 		uint64_t file_ref = file_entry.first;
-		cout << "FIle_ref: " << file_ref << std::endl;
         profile.file_data[file_handle.name] += FileInfo(alldata.definitions, file_ref);
     }
+
+	/* 2) Store stats per file */
+	/* Store I/O size and time statistics also per file */
+	for(auto file_io_entry: alldata.io_data_per_file) {
+		auto io_handle = alldata.definitions.iohandles.get(file_io_entry.first);
+		auto io_data = file_io_entry.second;
+		auto file_name = io_handle->name;
+
+		uint64_t bytes_read = 0, bytes_write = 0;
+		if(io_data.mode=="R") {
+			bytes_read = io_data.num_bytes;
+			bytes_write = 0;
+		} else if(io_data.mode=="W") {
+			bytes_read = 0;
+			bytes_write = io_data.num_bytes;
+		} else {
+			cout << "[ERROR?] Invalid io-access-mode:" << io_data.mode << ", Nr bytes worked on are:" << io_data.num_bytes << std::endl;
+		}
+		// profile.file_data[file_name].filename = file_name;
+		profile.file_data[file_name].bytes_write += bytes_write;
+		profile.file_data[file_name].bytes_read += bytes_read;
+	}
+
     profile.filename = alldata.params.input_file_name;
     profile.traceID  = alldata.traceID;
     profile.WriteProfile(w);

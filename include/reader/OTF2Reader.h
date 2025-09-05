@@ -67,20 +67,69 @@ class OTF2Reader : public TraceReader {
     /*                                                                */
     /* ************************************************************** */
 
-    static inline OTF2_CallbackCode handle_io_begin(OTF2_LocationRef locationID, OTF2_TimeStamp time,
+    static inline OTF2_CallbackCode io_operation_begin_callback(OTF2_LocationRef locationID, OTF2_TimeStamp time,
                                                     uint64_t eventPosition, void* userData,
                                                     OTF2_AttributeList* attributeList, OTF2_IoHandleRef handle,
                                                     OTF2_IoOperationMode mode, OTF2_IoOperationFlag flag,
                                                     uint64_t bytesRequest, uint64_t matchingId);
-    static inline OTF2_CallbackCode handle_io_end(OTF2_LocationRef locationID, OTF2_TimeStamp time,
+    static inline OTF2_CallbackCode io_operation_complete_callback(OTF2_LocationRef locationID, OTF2_TimeStamp time,
                                                   uint64_t eventPosition, void* userData,
                                                   OTF2_AttributeList* attributeList, OTF2_IoHandleRef handle,
-                                                  uint64_t bytesResult, uint64_t matchingId);
-    static inline OTF2_CallbackCode handle_io_create_handle(OTF2_LocationRef locationID, OTF2_TimeStamp time,
-                                                            uint64_t eventPosition, void* userData,
-                                                            OTF2_AttributeList* attributeList, OTF2_IoHandleRef handle,
-                                                            OTF2_IoAccessMode mode, OTF2_IoCreationFlag creationFlags,
-                                                            OTF2_IoStatusFlag statusFlags);
+												  uint64_t bytesResult, uint64_t matchingId);
+	static inline OTF2_CallbackCode io_create_handle_callback(OTF2_LocationRef locationID, OTF2_TimeStamp time,
+			uint64_t eventPosition, void* userData,
+			OTF2_AttributeList* attributeList, OTF2_IoHandleRef handle,
+			OTF2_IoAccessMode mode, OTF2_IoCreationFlag creationFlags,
+			OTF2_IoStatusFlag statusFlags);
+
+
+	/* TODO: */
+	static inline OTF2_CallbackCode io_destroy_handle_callback ( OTF2_LocationRef    locationID,
+			OTF2_TimeStamp      time,
+			void*               userData,
+			OTF2_AttributeList* attributeList,
+			OTF2_IoHandleRef    handle );
+
+	static inline OTF2_CallbackCode io_duplicate_handle_callback ( OTF2_LocationRef    locationID,
+			OTF2_TimeStamp      time,
+			void*               userData,
+			OTF2_AttributeList* attributeList,
+			OTF2_IoHandleRef    oldHandle,
+			OTF2_IoHandleRef    newHandle,
+			OTF2_IoStatusFlag   statusFlags );
+
+
+	static inline OTF2_CallbackCode io_seek_callback ( OTF2_LocationRef    location,
+			OTF2_TimeStamp      time,
+			void*               userData,
+			OTF2_AttributeList* attributeList,
+			OTF2_IoHandleRef    handle,
+			int64_t             offsetRequest,
+			OTF2_IoSeekOption   whence,
+			uint64_t            offsetResult );
+
+	static inline OTF2_CallbackCode io_change_status_flags_callback ( OTF2_LocationRef    location,
+			OTF2_TimeStamp      time,
+			void*               userData,
+			OTF2_AttributeList* attributeList,
+			OTF2_IoHandleRef    handle,
+			OTF2_IoStatusFlag   statusFlags );
+
+	static inline OTF2_CallbackCode io_delete_file_callback ( OTF2_LocationRef    location,
+			OTF2_TimeStamp      time,
+			void*               userData,
+			OTF2_AttributeList* attributeList,
+			OTF2_IoParadigmRef  ioParadigm,
+			OTF2_IoFileRef      file );
+
+	static inline OTF2_CallbackCode io_operation_cancelled_callback ( OTF2_LocationRef    location,
+			OTF2_TimeStamp      time,
+			void*               userData,
+			OTF2_AttributeList* attributeList,
+			OTF2_IoHandleRef    handle,
+			uint64_t            matchingId );
+	/* ^^^ TODO */
+
     static inline OTF2_CallbackCode handle_def_io_precreated_handle(void* userData, OTF2_IoHandleRef handle,
                                                                     OTF2_IoAccessMode mode,
                                                                     OTF2_IoStatusFlag statusFlags);
