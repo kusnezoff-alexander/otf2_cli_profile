@@ -35,12 +35,14 @@ struct AllData {
 	/* I/O Statistics per file
 	 * @note get corresponding @ref{IoHandle} by calling `auto h = alldata->definitions.iohandles.get(handle);` (eg to retrieve file name)
 	 * */
-    std::map<OTF2_IoHandleRef, IoData> io_data_per_file; // NEXT: TODO
+    std::map<OTF2_IoHandleRef, IoData> io_data_per_file;
 	/* I/O Statistics per file
 	 * @note get corresponding @ref{IoHandle} by calling `auto h = alldata->definitions.regions.get(handle);` (eg to retrieve function name)
 	 * @TODO use to output per-function summary (eg of 50 most I/O-intensive functions - by time and size)
 	 * */
 	std::map<OTF2_LocationRef, IoData> io_data_per_location; // NEXT: TODO
+
+	std::vector<std::string> ignore_file_path; // TODO: list of paths to ignore for profiling (eg for I/O to system directories like `/sys`,`/proc`,...
 
     AllData(uint32_t my_rank = 0, uint32_t num_ranks = 1) {
         metaData.myRank   = my_rank;

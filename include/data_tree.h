@@ -15,6 +15,9 @@
 class tree_iter;
 class tree_node;
 
+/**
+ * Used for storing call-path of regions (=functions)
+ */
 class data_tree {
    public:
     data_tree();
@@ -71,6 +74,7 @@ class tree_node {
     // std::shared_ptr<tree_node> parent;
     tree_node* parent;
 
+	/* Function/Region id (eg `OTF2_Locationref` in OTF2) */
     uint64_t function_id;
 
     /* function_id, pointer to node */

@@ -31,7 +31,8 @@ bool JsonReader::readDefinitions(AllData& alldata){
         definitions::Region region{
             regions[i]["name"].GetString(),
             regions[i]["paradigm_id"].GetUint(),
-            regions[i]["source_line"].GetUint(),
+            regions[i]["begin_source_line"].GetUint(),
+            regions[i]["end_source_line"].GetUint(),
             regions[i]["file_name"].GetString()
         };
         alldata.definitions.regions.add(region_id, region);

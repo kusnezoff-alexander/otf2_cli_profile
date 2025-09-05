@@ -20,11 +20,13 @@ using namespace std;
 // metric id (real), data
 static map<uint64_t, MetricData>        tmp_metric;
 static std::vector<uint64_t>            locationList;
+/* Store Mapping of `OTF2_StringRef`s to strings globally accessible */
 static StringIdentifier<OTF2_StringRef> string_id;
 static StringIdentifier<OTF2_IoFileRef> filesystem_entries;
 // TODO remove
 // static std::map<OTF2_StringRef, string> stringIdToString;
 static uint64_t              systemTreeNodeId;
+/* Callback of entered regions: used to determine which region we are currently in */
 static std::deque<StackData> node_stack;
 
 string OTF2ParadigmToString(OTF2_Paradigm paradigm) {
@@ -433,6 +435,10 @@ OTF2_CallbackCode OTF2Reader::handle_def_group(void* userData, OTF2_GroupRef gro
     return OTF2_CALLBACK_SUCCESS;
 }
 
+/**
+ * Store Region definitions (name, src-lines in code to which region refers, ..)
+ * @TODO utilize `regionRole`?
+ */
 OTF2_CallbackCode OTF2Reader::handle_def_region(void* userData, OTF2_RegionRef regionIdentifier, OTF2_StringRef name,
                                                 OTF2_StringRef canonicalName, OTF2_StringRef description,
                                                 OTF2_RegionRole regionRole, OTF2_Paradigm paradigm,
@@ -441,12 +447,14 @@ OTF2_CallbackCode OTF2Reader::handle_def_region(void* userData, OTF2_RegionRef r
     auto* alldata = static_cast<AllData*>(userData);
 
     auto strings = string_id.get(name, sourceFile);
+
+	cout << "Src file: " << sourceFile << "Start line nr: " << beginLineNumber << ", End line nr: " << endLineNumber << std::endl;
     if (strings.second != OTF2_CALLBACK_SUCCESS) {
         return strings.second;
     }
 
     alldata->definitions.regions.add(regionIdentifier,
-                                     {*strings.first[0], paradigm, beginLineNumber, *strings.first[1]});
+                                     {*strings.first[0], paradigm, beginLineNumber, endLineNumber, *strings.first[1]});
 
     return OTF2_CALLBACK_SUCCESS;
 }
@@ -641,6 +649,8 @@ OTF2_CallbackCode OTF2Reader::io_operation_complete_callback(OTF2_LocationRef lo
 			} else {
 				io_data->nontransfer_time += duration;
 			}
+			auto region_id =  node_stack.front().node_p->function_id;
+			io_data->region = region_id;
 		}
     }
     return OTF2_CALLBACK_SUCCESS;

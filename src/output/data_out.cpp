@@ -179,7 +179,7 @@ void display_definitions(AllData alldata, Writer& writer){
                     writer.Key("paradigm_id");
                     writer.Uint(region.second.paradigm_id);
                     writer.Key("source_line");
-                    writer.Uint(region.second.source_line);
+                    writer.Uint(region.second.begin_source_line);
                     writer.Key("file_name");
                     writer.String(region.second.file_name.c_str());
                 writer.EndObject();
@@ -309,7 +309,7 @@ void display_meta_data(AllData alldata, Writer& writer){
 
         writer.Key("input_file_name");
         writer.String(alldata.params.input_file_name.c_str());
-        
+
     writer.EndObject();
 }
 
@@ -374,7 +374,7 @@ void display_meta_data_profiler(AllData alldata, Writer& writer){
             writer.Key("packBuffer");
             writer.String(alldata.metaData.packBuffer);
         #endif
-    
+
     writer.EndObject();
 }
 

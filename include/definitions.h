@@ -24,7 +24,8 @@ using paradigm_id_t = uint32_t;
 struct Region {
     std::string   name;
     paradigm_id_t paradigm_id;
-    uint32_t      source_line;
+    uint32_t      begin_source_line;
+    uint32_t      end_source_line;
     std::string   file_name;
 };
 

@@ -11,6 +11,7 @@
 #include <string>
 #include <unordered_map>
 #include <cstdint>
+
 #include "otf2/OTF2_GeneralDefinitions.h"
 
 enum class MetricDataType : uint8_t {
@@ -306,6 +307,8 @@ struct IoData {
 	OTF2_IoHandleRef io_handle;
 	/* Mode in which the op has been performed (read or write) */
 	std::string mode;
+	/* Region from which this IoData has been "generated" from (the region which issued the I/O) */
+	OTF2_RegionRef region;
     IoData() : num_operations(0), num_bytes(0), transfer_time(0), nontransfer_time(0), mode("-") {}
 };
 

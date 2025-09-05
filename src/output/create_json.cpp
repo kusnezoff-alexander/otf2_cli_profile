@@ -7,6 +7,7 @@
 #include <iostream>
 #include <string>
 #include "all_data.h"
+#include "otf2/OTF2_GeneralDefinitions.h"
 #include "rapidjson/document.h"
 #include "rapidjson/prettywriter.h"
 #include "rapidjson/stringbuffer.h"
@@ -129,13 +130,18 @@ struct FileInfo {
         }
 
 		w.Key("#Bytes read");
-		w.Uint64(bytes_read); // TODO
+		w.Uint64(bytes_read);
 		w.Key("#Bytes write");
-		w.Uint64(bytes_write); // TODO
+		w.Uint64(bytes_write);
+		w.Key("Ticks spent");
+		w.Uint64(time_spent_in_ticks);
         w.EndObject();
     }
 };
 
+/**
+ * Data structure for storing resulting profile to output
+ */
 struct WorkflowProfile {
     uint64_t                            job_id;
 	/* Nr of Nodes used during execution of traced program */
@@ -155,6 +161,8 @@ struct WorkflowProfile {
     std::map<std::string, ProfileEntry> io_ops_by_paradigm;
 	/* Statistics per file */
     std::map<std::string, FileInfo>     file_data;
+	/* Statistics per srcline in a region */
+	std::map<std::string, ProfileEntry> io_per_region; // TODO !
 	/* Time (in ticks) spent executing parallel regions */
     uint64_t                            parallel_region_time;
 	/* Time (in ticks) spent executing serial regions */
@@ -228,6 +236,8 @@ void WorkflowProfile::WriteProfile(Writer& w) const {
         f.second.WriteFileInfo(w);
     }
     w.EndArray();
+
+    WriteMapUnderKey("Regions", io_per_region, w);
 
     w.Key("ParallelRegionTime");
     w.Uint64(parallel_region_time);
@@ -354,11 +364,40 @@ bool CreateJSON(AllData& alldata) {
 			bytes_read = 0;
 			bytes_write = io_data.num_bytes;
 		} else {
-			cout << "[ERROR?] Invalid io-access-mode:" << io_data.mode << ", Nr bytes worked on are:" << io_data.num_bytes << std::endl;
+			cout << "[WARNING] Invalid io-access-mode:" << io_data.mode << ", Nr bytes worked on are:" << io_data.num_bytes << std::endl;
 		}
 		// profile.file_data[file_name].filename = file_name;
 		profile.file_data[file_name].bytes_write += bytes_write;
 		profile.file_data[file_name].bytes_read += bytes_read;
+		profile.file_data[file_name].time_spent_in_ticks += io_data.transfer_time;
+		profile.file_data[file_name].time_spent_in_ticks += io_data.nontransfer_time; // TODO: output `nontransfer_time` separately?
+	}
+
+	/* 3) Store stats per location */
+	for(auto location_io_entry: alldata.io_data_per_location) {
+		// TODO: NEXT
+		auto io_data = location_io_entry.second;
+		auto region = alldata.definitions.regions.get(io_data.region);
+		auto region_name = region->name;
+		auto begin_src_line = region->begin_source_line == OTF2_UNDEFINED_UINT32 ? "?" : std::to_string(region->begin_source_line);
+		auto end_src_line = region->end_source_line == OTF2_UNDEFINED_UINT32 ? "?" : std::to_string(region->end_source_line);
+
+		uint64_t bytes_read = 0, bytes_write = 0;
+		if(io_data.mode=="R") {
+			bytes_read = io_data.num_bytes;
+			bytes_write = 0;
+		} else if(io_data.mode=="W") {
+			bytes_read = 0;
+			bytes_write = io_data.num_bytes;
+		} else {
+			cout << "[WARNING] Invalid io-access-mode:" << io_data.mode << ", Nr bytes worked on are:" << io_data.num_bytes << std::endl;
+		}
+		// profile.file_data[file_name].filename = file_name;
+		auto idx = region_name + ":" + begin_src_line + "-" + end_src_line;
+		profile.io_per_region[idx].entries["#Bytes write"] += bytes_write;
+		profile.io_per_region[idx].entries["#Bytes read"] += bytes_read;
+		profile.io_per_region[idx].entries["Ticks spent"] += io_data.transfer_time;
+		profile.io_per_region[idx].entries["Ticks spent"] += io_data.nontransfer_time; // TODO: output `nontransfer_time` separately?
 	}
 
     profile.filename = alldata.params.input_file_name;

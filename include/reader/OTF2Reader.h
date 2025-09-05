@@ -12,6 +12,9 @@
 #include "tracereader.h"
 #include <array>
 
+/**
+ * Used to translater `OTF2_StringRef` (for OTf2) into actual strings
+ */
 template <typename RefT>
 class StringIdentifier {
    public:
@@ -72,10 +75,12 @@ class OTF2Reader : public TraceReader {
                                                     OTF2_AttributeList* attributeList, OTF2_IoHandleRef handle,
                                                     OTF2_IoOperationMode mode, OTF2_IoOperationFlag flag,
                                                     uint64_t bytesRequest, uint64_t matchingId);
+
     static inline OTF2_CallbackCode io_operation_complete_callback(OTF2_LocationRef locationID, OTF2_TimeStamp time,
                                                   uint64_t eventPosition, void* userData,
                                                   OTF2_AttributeList* attributeList, OTF2_IoHandleRef handle,
 												  uint64_t bytesResult, uint64_t matchingId);
+
 	static inline OTF2_CallbackCode io_create_handle_callback(OTF2_LocationRef locationID, OTF2_TimeStamp time,
 			uint64_t eventPosition, void* userData,
 			OTF2_AttributeList* attributeList, OTF2_IoHandleRef handle,

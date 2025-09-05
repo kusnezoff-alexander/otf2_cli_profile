@@ -142,7 +142,7 @@ bool CreateCube(AllData& alldata) {
     // create all the regions
     for (auto& region : alldata.definitions.regions.get_all()) {
         MapCubeRegions[region.first] =
-            cube_out.def_region(region.second.name, region.second.name, "", "", region.second.source_line, 0, "", "",
+            cube_out.def_region(region.second.name, region.second.name, "", "", region.second.begin_source_line, 0, "", "",
                                 region.second.file_name);
     }
     // stop it!
