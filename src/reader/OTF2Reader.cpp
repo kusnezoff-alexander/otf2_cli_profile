@@ -1,8 +1,14 @@
+#include <cassert>
+#include <cstring>
 #include <iostream>
 #include <sstream>
 
 #include "OTF2Reader.h"
+#include "definitions.h"
+#include "otf2/OTF2_AttributeList.h"
+#include "otf2/OTF2_AttributeValue.h"
 #include "otf2/OTF2_Definitions.h"
+#include "otf2/OTF2_ErrorCodes.h"
 #include "otf2/OTF2_GeneralDefinitions.h"
 
 #ifdef OTFPROFILE_MPI
@@ -23,6 +29,7 @@ static std::vector<uint64_t>            locationList;
 /* Store Mapping of `OTF2_StringRef`s to strings globally accessible */
 static StringIdentifier<OTF2_StringRef> string_id;
 static StringIdentifier<OTF2_IoFileRef> filesystem_entries;
+static StringIdentifier<OTF2_AttributeRef> attributeref_to_name;
 // TODO remove
 // static std::map<OTF2_StringRef, string> stringIdToString;
 static uint64_t              systemTreeNodeId;
@@ -250,13 +257,25 @@ OTF2_CallbackCode OTF2Reader::handle_def_io_fs_entry(void* userData, OTF2_IoFile
     return OTF2_CALLBACK_SUCCESS;
 }
 
-/* TODO nicht verwendet
 OTF2_CallbackCode OTF2Reader::handle_def_attribute(void* userData, OTF2_AttributeRef self,
                                                    OTF2_StringRef name, OTF2_StringRef description,
                                                    OTF2_Type type) {
+    auto* alldata = static_cast<AllData*>(userData);
+
+	auto strings = string_id.get(name, description);
+
+    if (strings.second != OTF2_CALLBACK_SUCCESS)
+        return strings.second;
+
+	definitions::Attribute attribute {
+		*strings.first[0],
+		*strings.first[1],
+		type
+	};
+
+    alldata->definitions.attributes.add(self, attribute);
     return OTF2_CALLBACK_SUCCESS;
 }
-*/
     // OTF2_GlobalDefReaderCallback_MetricMember
 OTF2_CallbackCode OTF2Reader::handle_def_metrics(   void*                   userData,
                                         OTF2_MetricMemberRef    self,
@@ -448,7 +467,7 @@ OTF2_CallbackCode OTF2Reader::handle_def_region(void* userData, OTF2_RegionRef r
 
     auto strings = string_id.get(name, sourceFile);
 
-	cout << "Src file: " << sourceFile << "Start line nr: " << beginLineNumber << ", End line nr: " << endLineNumber << std::endl;
+	// cout << "Src file: " << sourceFile << "Start line nr: " << beginLineNumber << ", End line nr: " << endLineNumber << std::endl; // debug why src-lines are incorrect
     if (strings.second != OTF2_CALLBACK_SUCCESS) {
         return strings.second;
     }
@@ -515,6 +534,8 @@ OTF2_CallbackCode OTF2Reader::handle_def_system_tree_node(void* userData, OTF2_S
 }
 
 OTF2_CallbackCode OTF2Reader::handle_def_string(void* userData, OTF2_StringRef stringIdentifier, const char* string) {
+	// if(strcmp(string,"Offset")==0)
+	// 	cout << "Founddd Offset" << std::endl;
     string_id.add(stringIdentifier, string);
 
     return OTF2_CALLBACK_SUCCESS;
@@ -591,6 +612,7 @@ struct PendingIoEvt {
     uint64_t       bytes_request;
 };
 
+/* Keep track of open I/O events (since `IO_OPERATION_BEGIN`&`IO_OPERATION_END` might be nested arbitrarily */
 static std::map<uint64_t, PendingIoEvt> open_io_events;
 
 OTF2_CallbackCode OTF2Reader::io_operation_begin_callback(OTF2_LocationRef locationID, OTF2_TimeStamp time, uint64_t eventPosition,
@@ -616,6 +638,25 @@ OTF2_CallbackCode OTF2Reader::io_operation_begin_callback(OTF2_LocationRef locat
             break;
     }
 
+	// some I/O Operation include offsets in the attribute list during `IO_OPERATION_BEGIN`:
+	uint64_t offset;
+	OTF2_AttributeRef attribute;
+	OTF2_AttributeValue attributeValue;
+	OTF2_Type type;
+	OTF2_AttributeRef first_attribute;
+	// auto status = OTF2_AttributeList_PopAttribute(attributeList, &first_attribute, &type, &attributeValue);
+	OTF2_ErrorCode status = OTF2_SUCCESS;
+	while( status == OTF2_SUCCESS && OTF2_AttributeList_GetNumberOfElements(attributeList)>0) {
+		status =  OTF2_AttributeList_PopAttribute(attributeList, &attribute, &type, &attributeValue);
+		auto name = alldata->definitions.attributes.get(attribute)->name;
+		OTF2_MappingType enumValue;
+		if(name == "Offset") {
+			assert(type == OTF2_TYPE_UINT64); // offsets should be of type uint64_t
+			offset = attributeValue.uint64;
+			// TODO: check IOSeek for offsets
+			h->requested_offset_per_location[locationID].push_back(offset);
+		}
+	}
     return OTF2_CALLBACK_SUCCESS;
 }
 OTF2_CallbackCode OTF2Reader::io_operation_complete_callback(OTF2_LocationRef locationID, OTF2_TimeStamp time, uint64_t eventPosition,
@@ -1058,13 +1099,13 @@ bool OTF2Reader::readDefinitions(AllData& alldata) {
 
     if (OTF2_SUCCESS != status)
         return false;
-    /* TODO nicht verwendet
-        status = OTF2_GlobalDefReaderCallbacks_SetAttributeCallback(glob_def_callbacks,
-                                                                    handle_def_attribute);
 
-        if (OTF2_SUCCESS != status)
-            return false;
-    */
+	status = OTF2_GlobalDefReaderCallbacks_SetAttributeCallback(glob_def_callbacks,
+																handle_def_attribute);
+
+	if (OTF2_SUCCESS != status)
+		return false;
+
     if (alldata.params.read_metrics) {
         status = OTF2_GlobalDefReaderCallbacks_SetMetricMemberCallback(glob_def_callbacks, handle_def_metrics);
         if (OTF2_SUCCESS != status)

@@ -78,15 +78,19 @@ struct FileInfo {
         filename = self->name;
         paradigm.insert(defs.io_paradigms.get(self->io_paradigm)->name);
         modes = self->modes;
+
+		exclusive_or_shared = self->requested_offset_per_location.size() > 1 ? 'S' : 'E'; // if more than two locations accessed this file it is shared
     }
 
+	// TODO: Remove Operator Overloading, make function more explicit
     void operator+=(const FileInfo& rhs) {
-        filename = rhs.filename;
+        filename = rhs.filename; // TODO: the file names should be always equal, right?
         if (rhs.parentfile && !parentfile)
             parentfile = rhs.parentfile;
         std::copy(rhs.paradigm.begin(), rhs.paradigm.end(), std::inserter(paradigm, paradigm.begin()));
         std::copy(rhs.modes.begin(), rhs.modes.end(), std::inserter(modes, modes.begin()));
 
+		exclusive_or_shared = rhs.exclusive_or_shared=='S' ? 'S' : exclusive_or_shared; // if either `FileInfo` contains info about file being shared, then it is shared
 		// TODO: Size/Timing stats are collected elsewhere (`bytes_read`,`bytes_write`,`time_spent_in_ticks`)
     }
 
@@ -96,13 +100,19 @@ struct FileInfo {
 	/* Modes in which file was opened (read/write) */
 	std::set<std::string> modes;
     FileInfo*             parentfile;
-	// WIP:
 	/* Bytes read from this file */
 	std::uint64_t		  bytes_read=0;
 	/* Bytes written to this file */
 	std::uint64_t		  bytes_write=0;
 	/* Time spent reading/writing the file */
 	std::uint64_t		  time_spent_in_ticks=0;
+
+	// === Access Patterns (NEXT: TODO)
+	/* Whether file-access is exclusive ("E") or shared ("S") */
+	char			  	  exclusive_or_shared = 'E';
+	/* Whether file-access pattern is contiguous or strided or random */
+	std::string 		  contiguous_or_strided_or_random;
+
 	// TODO: time spent for meta-ops
 
     template <typename Writer>
@@ -136,6 +146,14 @@ struct FileInfo {
 		w.Uint64(bytes_write);
 		w.Key("Ticks spent");
 		w.Uint64(time_spent_in_ticks);
+
+		w.Key("Exclusive or Shared:");
+	 	char char_buffer[2] = {exclusive_or_shared, '\0'};
+		w.String(char_buffer);
+
+		w.Key("Access Pattern");
+		w.String(contiguous_or_strided_or_random.c_str());
+
         w.EndObject();
     }
 };
@@ -143,7 +161,7 @@ struct FileInfo {
 /* TODO: NEXT */
 struct RegionInfo {
     RegionInfo() {}
-	/* Construct FileInfo given file_ref-id (from Definitions) */
+	/* Construct Region info given io_handle-id (from Definitions) */
     RegionInfo(const Definitions& defs, uint64_t id) {
         const IoHandle* self = defs.iohandles.get(id);
         if (!self)
@@ -156,8 +174,6 @@ struct RegionInfo {
 
     void operator+=(const FileInfo& rhs) {
         region_name = rhs.filename;
-        // if (rhs.parentfile && !parentfile)
-        //     parentfile = rhs.parentfile;
         std::copy(rhs.paradigm.begin(), rhs.paradigm.end(), std::inserter(paradigm, paradigm.begin()));
         std::copy(rhs.modes.begin(), rhs.modes.end(), std::inserter(modes, modes.begin()));
 
@@ -166,18 +182,19 @@ struct RegionInfo {
 
 	/* Region/Function name */
     std::string           region_name;
-	// std::string 		  file_name;
+	std::string			  region_begin_src_line;
+	std::string			  region_end_src_line;
 	/* File in which this region/functions is defined */
 	/* I/O Paradigms used to perform I/O on file */
     std::set<std::string> paradigm;
 	/* Modes in which file was opened (read/write) */
 	std::set<std::string> modes;
 	// WIP:
-	/* Bytes read from this file */
+	/* Bytes read from by this region */
 	std::uint64_t		  bytes_read=0;
-	/* Bytes written to this file */
+	/* Bytes written by this region */
 	std::uint64_t		  bytes_write=0;
-	/* Time spent reading/writing the file */
+	/* Time spent reading/writing by this region */
 	std::uint64_t		  time_spent_in_ticks=0;
 	/* Top 5 other regions that called this region (by nr of calls) with `std::string` being the name of the calling region
 	 * @note data is taken from @ref{AllData} (field `const_cast<std::map<const Region*, uint64_t>&>(my_map);`)
@@ -186,7 +203,12 @@ struct RegionInfo {
 	// TODO: time spent for meta-ops
 
     template <typename Writer>
-    void WriteRegionInfo(Writer& w) const {
+    void WriteRegionInfo(Writer& w, const std::map<std::string, RegionInfo>* io_per_region) const {
+		if(io_per_region == nullptr) {
+			std::cerr << "Encountered io_per_region=nullptr" << std::endl;
+			return;
+		}
+
         w.StartObject();
         w.Key("RegionName");
         w.String(region_name.c_str());
@@ -214,9 +236,19 @@ struct RegionInfo {
 		w.Key("Top 5 Callees");
         w.StartArray();
         for (auto pstr : region_callees_top5) {
+			std::string parent_begin_src_line = "?", parent_end_src_line = "?";
+			if(io_per_region->find(pstr.first) != io_per_region->end()) {
+				// TODO: src-lines not working (yet)
+				auto parent_region_info = io_per_region->find(pstr.first)->second;
+				parent_begin_src_line = parent_region_info.region_begin_src_line;
+				parent_end_src_line = parent_region_info.region_end_src_line;
+			}
+
 			w.StartObject();
 			w.Key("Region name");
             w.String(pstr.first.c_str());
+			w.Key("Source lines");
+			w.String((parent_begin_src_line + "-" + parent_end_src_line).c_str());
 			w.Key("Nr calls");
 			w.Uint64(pstr.second);
 			w.EndObject();
@@ -328,7 +360,7 @@ void WorkflowProfile::WriteProfile(Writer& w) const {
     w.Key("Regions");
     w.StartArray();
     for (auto f : io_per_region) {
-        f.second.WriteRegionInfo(w);
+        f.second.WriteRegionInfo(w, &io_per_region);
     }
     w.EndArray();
 
@@ -442,6 +474,7 @@ bool CreateJSON(AllData& alldata) {
         auto file_handle = file_entry.second;
 		uint64_t file_ref = file_entry.first;
         profile.file_data[file_handle.name] += FileInfo(alldata.definitions, file_ref);
+		cout << profile.file_data[file_handle.name].exclusive_or_shared << std::endl;
     }
 
 	/* 2) Store stats per file */
@@ -494,6 +527,8 @@ bool CreateJSON(AllData& alldata) {
 		profile.io_per_region[idx].bytes_read += bytes_read;
 		profile.io_per_region[idx].time_spent_in_ticks += io_data.transfer_time;
 		profile.io_per_region[idx].time_spent_in_ticks += io_data.nontransfer_time; // TODO: output `nontransfer_time` separately?
+		profile.io_per_region[idx].region_begin_src_line = begin_src_line;
+		profile.io_per_region[idx].region_end_src_line = end_src_line;
 
 		// TODO: get 5 top-calling callees from `alldata`:
 		auto all_callee_regions = alldata.parent_regions_by_callcount[io_data.region];
