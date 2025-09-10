@@ -649,7 +649,6 @@ class OTF2Reader : public TraceReader {
     /*                                                                */
     /* ************************************************************** */
 
-    // TODO nicht verwendet
     static inline OTF2_CallbackCode handle_def_attribute(void* userData, OTF2_AttributeRef self, OTF2_StringRef name,
                                                          OTF2_StringRef description, OTF2_Type type);
 

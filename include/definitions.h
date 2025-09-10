@@ -4,6 +4,8 @@
 */
 
 #pragma once
+#include <cstdint>
+#include "otf2/OTF2_GeneralDefinitions.h"
 #ifndef DEFINITIONS_H
 #define DEFINITIONS_H
 
@@ -21,13 +23,26 @@ namespace definitions {
 
 using paradigm_id_t = uint32_t;
 
+/* @brief Stores data associated with each region as read from the Region-Definitions
+ *
+ * @note To get info about parent regions (=regions which called this region and how many times they did it) see @ref{AllData} (field `parent_regions_by_callcount`)
+ */
 struct Region {
-    std::string   name;
-    paradigm_id_t paradigm_id;
-    uint32_t      begin_source_line;
-    uint32_t      end_source_line;
-    std::string   file_name;
+    std::string   				name;
+    paradigm_id_t 				paradigm_id;
+    uint32_t      				begin_source_line;
+	uint32_t      				end_source_line;
+	std::string   				file_name;
 };
+
+/* OTF2 Attribute */
+struct Attribute
+{
+	std::string name;
+	std::string description;
+	OTF2_Type   type;
+};
+
 
 /*OTF2 Metric */
 
@@ -384,12 +399,22 @@ struct IoHandle {
 	// TODO: verify this approach is valid (i.e. that no race condition exists)
 	// TODO: make `std::map<LocationId, std::string>` since several processes might open same file ?!`
 	mutable std::string last_io_mode;
+	/* Offsets requested per location, used to determine file access patterns per file
+	 * @note Set in @ref{OTF2Reader::io_operation_begin_callback}
+	 * */
+	mutable std::map<OTF2_LocationRef, std::vector<uint64_t>> requested_offset_per_location;
 };
 
+/**
+ * @brief Data Structure for storing all definitions from OTF2-trace
+ *
+ * @note Have to be accessible globally !
+ */
 struct Definitions {
     DefinitionType<uint64_t, Region>        regions;
     DefinitionType<uint64_t, Metric>        metrics;
     DefinitionType<uint64_t, Metric_Class>  metric_classes;
+	DefinitionType<OTF2_AttributeRef, Attribute> attributes;
     DefinitionType<paradigm_id_t, Paradigm> paradigms;
     DefinitionType<paradigm_id_t, Paradigm> io_paradigms;
 	/* TODO: What does the uint64_t here refer to?? Some internal indexing or OTf2-Refs?? */

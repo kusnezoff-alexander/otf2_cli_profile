@@ -6,8 +6,10 @@
 #ifndef ALLDATA_H
 #define ALLDATA_H
 
+#include <cstdint>
 #include "data_tree.h"
 #include "definitions.h"
+#include "otf2/OTF2_GeneralDefinitions.h"
 #include "utils.h"
 
 /* *** management and statistics data structures, needed on all ranks ***
@@ -40,9 +42,12 @@ struct AllData {
 	 * @note get corresponding @ref{IoHandle} by calling `auto h = alldata->definitions.regions.get(handle);` (eg to retrieve function name)
 	 * @TODO use to output per-function summary (eg of 50 most I/O-intensive functions - by time and size)
 	 * */
-	std::map<OTF2_LocationRef, IoData> io_data_per_location; // NEXT: TODO
+	std::map<OTF2_LocationRef, IoData> io_data_per_location; // TODO
 
-	std::vector<std::string> ignore_file_path; // TODO: list of paths to ignore for profiling (eg for I/O to system directories like `/sys`,`/proc`,...
+	/* For each region (=first `OTF2_RegionRef`) it stores the regions which have called it (=`OTF2_RegionRef` into nested map) and the nr of times they have called it (=`uint64_t`) */
+	std::map<OTF2_RegionRef, std::map<OTF2_RegionRef, uint64_t>> parent_regions_by_callcount;
+
+	std::vector<std::string> file_path_to_ignore; // TODO: list of paths to ignore for profiling (eg for I/O to system directories like `/sys`,`/proc`,...
 
     AllData(uint32_t my_rank = 0, uint32_t num_ranks = 1) {
         metaData.myRank   = my_rank;

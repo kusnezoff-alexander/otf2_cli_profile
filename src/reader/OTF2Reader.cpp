@@ -9,6 +9,7 @@
 #include "otf2/OTF2_AttributeValue.h"
 #include "otf2/OTF2_Definitions.h"
 #include "otf2/OTF2_ErrorCodes.h"
+#include "otf2/OTF2_Events.h"
 #include "otf2/OTF2_GeneralDefinitions.h"
 
 #ifdef OTFPROFILE_MPI
@@ -659,6 +660,7 @@ OTF2_CallbackCode OTF2Reader::io_operation_begin_callback(OTF2_LocationRef locat
 	}
     return OTF2_CALLBACK_SUCCESS;
 }
+
 OTF2_CallbackCode OTF2Reader::io_operation_complete_callback(OTF2_LocationRef locationID, OTF2_TimeStamp time, uint64_t eventPosition,
                                             void* userData, OTF2_AttributeList* attributeList, OTF2_IoHandleRef handle,
                                             uint64_t bytesResult, uint64_t matchingId) {
@@ -695,6 +697,19 @@ OTF2_CallbackCode OTF2Reader::io_operation_complete_callback(OTF2_LocationRef lo
 		}
     }
     return OTF2_CALLBACK_SUCCESS;
+}
+
+OTF2_CallbackCode OTF2Reader::io_seek_callback ( OTF2_LocationRef    location, OTF2_TimeStamp      time,
+                                     void*               userData, OTF2_AttributeList* attributeList,
+                                     OTF2_IoHandleRef    handle, int64_t             offsetRequest,
+                                     OTF2_IoSeekOption   whence, uint64_t            offsetResult )
+{
+    auto* alldata = static_cast<AllData*>(userData);
+    auto* ioh     = alldata->definitions.iohandles.get(handle);
+	ioh->requested_offset_per_location[location].push_back(offsetResult);
+	// NOTE: do we care about `offsetRequest`?
+	std::cout << "Callback io_seek_callback\n";
+	return OTF2_CALLBACK_SUCCESS;
 }
 
 OTF2_CallbackCode OTF2Reader::io_create_handle_callback(OTF2_LocationRef locationID, OTF2_TimeStamp time,
@@ -1194,6 +1209,7 @@ bool OTF2Reader::readEvents(AllData& alldata) {
     OTF2_EvtReaderCallbacks_SetMetricCallback(evt_callbacks, handle_metric);
     OTF2_EvtReaderCallbacks_SetIoOperationBeginCallback(evt_callbacks, io_operation_begin_callback);
     OTF2_EvtReaderCallbacks_SetIoOperationCompleteCallback(evt_callbacks, io_operation_complete_callback);
+	OTF2_GlobalEvtReaderCallbacks_SetIoSeekCallback(evt_callbacks, io_seek_callback);
     OTF2_EvtReaderCallbacks_SetIoCreateHandleCallback(evt_callbacks, io_create_handle_callback);
 #ifndef OTFPROFILE_MPI
 
