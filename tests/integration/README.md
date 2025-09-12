@@ -4,6 +4,6 @@ How to run tests:
 spack install bats
 spack load bats
 
-# Run tests:
+# Run tests (but pls use the provided CMake command eg `make run_tests` instead):
 bats test_file_stats.bats
 ```

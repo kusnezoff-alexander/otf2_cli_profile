@@ -12,9 +12,16 @@ include_directories("${PROJECT_SOURCE_DIR}/include/output")
 
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake;${CMAKE_MODULE_PATH}")
 
-include(cmake/DefaultBuildType.cmake)
-include(ExternalProject)
+add_compile_options(-Wno-error)
 
+# === Custom cmake file
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/") # own `.cmake` files: eg `Doxygen.cmake` for generating Docs, `Format.cmake` for consistent formatting
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/module/") # add module files for external pkgs under `cmake/modules`
+include(DefaultBuildType)
+include(BatsTests)
+
+# === Dependencies
+include(ExternalProject)
 
 option (USE_OTF "USE OTF library" OFF)
 if (USE_OTF)
@@ -26,28 +33,28 @@ option (USE_OTF2 "Use OTF2 library" ON)
 if (USE_OTF2)
 	find_package (OTF2)
 
-	if(NOT OTF2_FOUND)
-		message("Downloading OTF23.1 manually...")
-
-		# Set where OTF2 should be built and installed
-		set(OTF2_PREFIX ${CMAKE_BINARY_DIR}/otf2-install)
-
-		ExternalProject_Add(OTF2
-			URL https://perftools.pages.jsc.fz-juelich.de/cicd/otf2/tags/otf2-3.1/otf2-3.1.tar.gz
-			PREFIX ${CMAKE_BINARY_DIR}/otf2
-			CONFIGURE_COMMAND <SOURCE_DIR>/configure --prefix=${OTF2_PREFIX} # CXXFLAGS="-Wno-deprecated-enum-enum-conversion"
-			BUILD_COMMAND make -j
-			INSTALL_COMMAND make install
-
-			# TODO: prevent rebuilt on every compilation (the below doesnt work..)
-			# Set the directory where the file is downloaded and cached
-		  	DOWNLOAD_DIR ${CMAKE_BINARY_DIR}/downloads
-			# These prevent re-downloading if already built
-		  	DOWNLOAD_NO_EXTRACT FALSE
-		  	UPDATE_DISCONNECTED TRUE
-			BUILD_ALWAYS OFF
-		)
-	endif()
+	# if(NOT OTF2_FOUND)
+	# 	message("Downloading OTF23.1 manually...")
+	#
+	# 	# Set where OTF2 should be built and installed
+	# 	set(OTF2_PREFIX ${CMAKE_BINARY_DIR}/otf2-install)
+	#
+	# 	ExternalProject_Add(OTF2
+	# 		URL https://perftools.pages.jsc.fz-juelich.de/cicd/otf2/tags/otf2-3.1/otf2-3.1.tar.gz
+	# 		PREFIX ${CMAKE_BINARY_DIR}/otf2
+	# 		CONFIGURE_COMMAND <SOURCE_DIR>/configure --prefix=${OTF2_PREFIX} # CXXFLAGS="-Wno-deprecated-enum-enum-conversion"
+	# 		BUILD_COMMAND make -j
+	# 		INSTALL_COMMAND make install
+	#
+	# 		# TODO: prevent rebuilt on every compilation (the below doesnt work..)
+	# 		# Set the directory where the file is downloaded and cached
+	# 	  	DOWNLOAD_DIR ${CMAKE_BINARY_DIR}/downloads
+	# 		# These prevent re-downloading if already built
+	# 	  	DOWNLOAD_NO_EXTRACT FALSE
+	# 	  	UPDATE_DISCONNECTED TRUE
+	# 		BUILD_ALWAYS OFF
+	# 	)
+	# endif()
 
     set (HAVE_OTF2 OTF2_FOUND)
     set (VERSION_OTF2_MAJOR ${OTF2_VERSION_MAJOR})
@@ -77,6 +84,8 @@ if(USE_DATA_OUT)
     find_package(RapidJson)
     set(HAVE_DATA_OUT RapidJson_FOUND)
 endif()
+
+# === Compilation-specific
 
 set(SOURCE_FILES
     src/reader/tracereader.cpp
@@ -131,6 +140,7 @@ configure_file (
 # build sequential version of OTF-Profiler
 add_executable (otf-profiler ${SOURCE_FILES})
 # Requiring language standard C++ 11
+target_compile_options(otf-profiler PRIVATE -Wno-error)
 target_compile_features(otf-profiler PUBLIC cxx_std_11)
 target_link_directories(otf-profiler PRIVATE ${OTF2_PREFIX}/lib)
 target_link_libraries(otf-profiler ${EXTRA_LIBS} otf2)

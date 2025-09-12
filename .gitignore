@@ -27,3 +27,14 @@
 *.exe
 *.out
 *.app
+
+# Log files
+.log
+
+# Other dirs
+build/**
+.cache/**
+
+# Outputs produced during running tests
+tests/integration/log/**
+tests/integration/out/**

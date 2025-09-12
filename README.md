@@ -1,7 +1,9 @@
 # otf2_cli_profile
+
 ## a command-line tool to read OTF and OTF2 trace files and convert them to profiles
 
 ## Output formats
+
 * CUBE profile files for Scalasca and other compatible tools
 * High-level JSON summaries of the contents of the trace
 * Graphviz visualalization tree of the callpath of the trace
@@ -11,6 +13,7 @@
 [mpirun] otf-profiler -i input-filename -o output-basename [ARGS]
 ```
 ### Arguments
+
 `--cube`: produce a CUBE profile
 
 `--json`: produce a JSON summary
@@ -33,6 +36,27 @@
 `-f`: set maximal file handles per MPI rank
 
 `-h`, `--help`: get usage message
+
+## Build Instructions
+
+Make sure dependencies are installed:
+```sh
+# RedHat
+sudo dnf install scorep otf2 rapidjson-devel # might require setting symlink `sudo ln -s /usr/lib64/libpapi.so.7.1 /usr/lib64/libpapi.so.7.2`
+
+# or with spack
+spack install otf2@3.1.1 scorep@8.4 rapidjson
+
+# or your preferred way..
+```
+
+Build & run:
+```sh
+mkdir build & cd build
+cmake ..
+make
+make run_tests # to run BATS integration tests
+```
 
 ## Details
 

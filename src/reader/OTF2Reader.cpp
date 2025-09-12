@@ -1150,6 +1150,7 @@ bool OTF2Reader::readDefinitions(AllData& alldata) {
     status = OTF2_GlobalDefReaderCallbacks_SetIoHandleCallback(glob_def_callbacks, handle_def_io_handle);
     if (OTF2_SUCCESS != status)
         return false;
+
     status = OTF2_GlobalDefReaderCallbacks_SetIoPreCreatedHandleStateCallback(glob_def_callbacks,
                                                                               handle_def_io_precreated_handle);
     if (OTF2_SUCCESS != status)
@@ -1182,6 +1183,7 @@ bool OTF2Reader::readEvents(AllData& alldata) {
     OTF2_EvtReader* local_evt_reader;
 
     OTF2_EvtReaderCallbacks* evt_callbacks = OTF2_EvtReaderCallbacks_New();
+    OTF2_GlobalEvtReaderCallbacks* glob_evt_callbacks = OTF2_GlobalEvtReaderCallbacks_New();
 
     if (NULL == evt_callbacks)
         return false;
@@ -1209,7 +1211,6 @@ bool OTF2Reader::readEvents(AllData& alldata) {
     OTF2_EvtReaderCallbacks_SetMetricCallback(evt_callbacks, handle_metric);
     OTF2_EvtReaderCallbacks_SetIoOperationBeginCallback(evt_callbacks, io_operation_begin_callback);
     OTF2_EvtReaderCallbacks_SetIoOperationCompleteCallback(evt_callbacks, io_operation_complete_callback);
-	OTF2_GlobalEvtReaderCallbacks_SetIoSeekCallback(evt_callbacks, io_seek_callback);
     OTF2_EvtReaderCallbacks_SetIoCreateHandleCallback(evt_callbacks, io_create_handle_callback);
 #ifndef OTFPROFILE_MPI
 
@@ -1312,28 +1313,30 @@ bool OTF2Reader::readEvents(AllData& alldata) {
 
 #endif
 
+	OTF2_GlobalEvtReaderCallbacks_SetIoSeekCallback(glob_evt_callbacks, io_seek_callback);
     /*
      * Callbacks not implemented yet
      *
-     OTF2_GlobalEvtReaderCallbacks_SetBufferFlushCallback( evt_callbacks,
+     OTF2_GlobalEvtReaderCallbacks_SetBufferFlushCallback( glob_evt_callbacks,
      c3g::Otf2Reader::handleBufferFlush );
-     OTF2_GlobalEvtReaderCallbacks_SetOmpForkCallback( evt_callbacks, c3g::Otf2Reader::handleOmpFork
+     OTF2_GlobalEvtReaderCallbacks_SetOmpForkCallback( glob_evt_callbacks, c3g::Otf2Reader::handleOmpFork
      );
-     OTF2_GlobalEvtReaderCallbacks_SetOmpTaskCreateCallback( evt_callbacks,
+     OTF2_GlobalEvtReaderCallbacks_SetOmpTaskCreateCallback( glob_evt_callbacks,
      c3g::Otf2Reader::handleOmpTaskCreate );
-     OTF2_GlobalEvtReaderCallbacks_SetOmpTaskSwitchCallback( evt_callbacks,
+     OTF2_GlobalEvtReaderCallbacks_SetOmpTaskSwitchCallback( glob_evt_callbacks,
      c3g::Otf2Reader::handleOmpTaskSwitch );
-     OTF2_GlobalEvtReaderCallbacks_SetOmpTaskCompleteCallback( evt_callbacks,
+     OTF2_GlobalEvtReaderCallbacks_SetOmpTaskCompleteCallback( glob_evt_callbacks,
      c3g::Otf2Reader::handleOmpTaskComplete );
-     OTF2_GlobalEvtReaderCallbacks_SetOmpJoinCallback( evt_callbacks, c3g::Otf2Reader::handleOmpJoin
+     OTF2_GlobalEvtReaderCallbacks_SetOmpJoinCallback( glob_evt_callbacks, c3g::Otf2Reader::handleOmpJoin
      );
-     OTF2_GlobalEvtReaderCallbacks_SetOmpAcquireLockCallback( evt_callbacks,
+     OTF2_GlobalEvtReaderCallbacks_SetOmpAcquireLockCallback( glob_evt_callbacks,
      c3g::Otf2Reader::handleOmpAcquireLock );
-     OTF2_GlobalEvtReaderCallbacks_SetOmpReleaseLockCallback( evt_callbacks,
+     OTF2_GlobalEvtReaderCallbacks_SetOmpReleaseLockCallback( glob_evt_callbacks,
      c3g::Otf2Reader::handleOmpReleaseLock );
-     OTF2_GlobalEvtReaderCallbacks_SetUnknownCallback( evt_callbacks, c3g::Otf2Reader::handleUnknown
+     OTF2_GlobalEvtReaderCallbacks_SetUnknownCallback( glob_evt_callbacks, c3g::Otf2Reader::handleUnknown
      );
      */
+    OTF2_GlobalEvtReaderCallbacks_Delete(glob_evt_callbacks);
 
     return true;
 }
