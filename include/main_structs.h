@@ -119,8 +119,18 @@ struct MetricData {
 
     MetricData() = default;
 
-    void add_incl(const MetricData& rhs) {
-        assert(type == rhs.type);
+	MetricData(MetricDataType t, uint64_t u = 0, int64_t s = 0, double d = 0.0)
+		: type(t), data_incl(), data_excl()
+	{
+		switch (t) {
+			case MetricDataType::UINT64: data_incl.u = u; break;
+			case MetricDataType::INT64:  data_incl.s = s; break;
+			case MetricDataType::DOUBLE: data_incl.d = d; break;
+		}
+	}
+
+	void add_incl(const MetricData& rhs) {
+		assert(type == rhs.type);
         switch (type) {
             case MetricDataType::UINT64:
                 data_excl += (uint64_t)rhs.data_incl;

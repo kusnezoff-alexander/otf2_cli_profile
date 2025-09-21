@@ -72,7 +72,7 @@ int main() {
             fprintf(stderr, "Warning: read less than 10 bytes at stride %d\n", i);
         }
 
-        printf("Stride read %d: '%.*s'\n", i + 1, (int)bytesRead, buffer);
+        // printf("Stride read %d: '%.*s'\n", i + 1, (int)bytesRead, buffer);
     }
 
     fclose(strided_file);
@@ -103,7 +103,7 @@ int main() {
             return 1;
         }
 
-        printf("Random write %d: %d bytes at offset %lld\n", i + 1, 1, (long long)offset);
+        // printf("Random write %d: %d bytes at offset %lld\n", i + 1, 1, (long long)offset);
     }
 
     close(random_file);

@@ -399,7 +399,7 @@ struct IoHandle {
 	// TODO: verify this approach is valid (i.e. that no race condition exists)
 	// TODO: make `std::map<LocationId, std::string>` since several processes might open same file ?!`
 	mutable std::string last_io_mode;
-	/* Offsets requested per location, used to determine file access patterns per file
+	/* Offsets requested per location and IO-Handle, used to determine file access patterns per file
 	 * @note Set in @ref{OTF2Reader::io_operation_begin_callback}
 	 * */
 	mutable std::map<OTF2_LocationRef, std::vector<uint64_t>> requested_offset_per_location;

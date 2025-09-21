@@ -647,6 +647,8 @@ OTF2_CallbackCode OTF2Reader::io_operation_begin_callback(OTF2_LocationRef locat
 	OTF2_AttributeRef first_attribute;
 	// auto status = OTF2_AttributeList_PopAttribute(attributeList, &first_attribute, &type, &attributeValue);
 	OTF2_ErrorCode status = OTF2_SUCCESS;
+	if(h->requested_offset_per_location.find(locationID) == h->requested_offset_per_location.end())
+		h->requested_offset_per_location[locationID] = {}; // some I/O don't provide an initial offset (eg if opened in APPEND-Mode
 	while( status == OTF2_SUCCESS && OTF2_AttributeList_GetNumberOfElements(attributeList)>0) {
 		status =  OTF2_AttributeList_PopAttribute(attributeList, &attribute, &type, &attributeValue);
 		auto name = alldata->definitions.attributes.get(attribute)->name;
@@ -699,16 +701,21 @@ OTF2_CallbackCode OTF2Reader::io_operation_complete_callback(OTF2_LocationRef lo
     return OTF2_CALLBACK_SUCCESS;
 }
 
-OTF2_CallbackCode OTF2Reader::io_seek_callback ( OTF2_LocationRef    location, OTF2_TimeStamp      time,
-                                     void*               userData, OTF2_AttributeList* attributeList,
-                                     OTF2_IoHandleRef    handle, int64_t             offsetRequest,
-                                     OTF2_IoSeekOption   whence, uint64_t            offsetResult )
+OTF2_CallbackCode OTF2Reader::io_seek_callback ( OTF2_LocationRef    location,
+                                     OTF2_TimeStamp      time,
+                                     uint64_t            eventPosition,
+                                     void*               userData,
+                                     OTF2_AttributeList* attributeList,
+                                     OTF2_IoHandleRef    handle,
+                                     int64_t             offsetRequest,
+                                     OTF2_IoSeekOption   whence,
+                                     uint64_t            offsetResult )
 {
     auto* alldata = static_cast<AllData*>(userData);
     auto* ioh     = alldata->definitions.iohandles.get(handle);
 	ioh->requested_offset_per_location[location].push_back(offsetResult);
 	// NOTE: do we care about `offsetRequest`?
-	std::cout << "Callback io_seek_callback\n";
+	std::cout << "Callback io_seek_callback:" << offsetResult << std::endl;
 	return OTF2_CALLBACK_SUCCESS;
 }
 
@@ -1212,6 +1219,8 @@ bool OTF2Reader::readEvents(AllData& alldata) {
     OTF2_EvtReaderCallbacks_SetIoOperationBeginCallback(evt_callbacks, io_operation_begin_callback);
     OTF2_EvtReaderCallbacks_SetIoOperationCompleteCallback(evt_callbacks, io_operation_complete_callback);
     OTF2_EvtReaderCallbacks_SetIoCreateHandleCallback(evt_callbacks, io_create_handle_callback);
+    OTF2_EvtReaderCallbacks_SetIoSeekCallback(evt_callbacks, io_seek_callback);
+
 #ifndef OTFPROFILE_MPI
 
     OTF2_DefReader* local_def_reader;
@@ -1313,7 +1322,7 @@ bool OTF2Reader::readEvents(AllData& alldata) {
 
 #endif
 
-	OTF2_GlobalEvtReaderCallbacks_SetIoSeekCallback(glob_evt_callbacks, io_seek_callback);
+	// OTF2_GlobalEvtReaderCallbacks_SetIoSeekCallback(glob_evt_callbacks, io_seek_callback);
     /*
      * Callbacks not implemented yet
      *

@@ -105,13 +105,14 @@ class OTF2Reader : public TraceReader {
 
 
 	static inline OTF2_CallbackCode io_seek_callback ( OTF2_LocationRef    location,
-			OTF2_TimeStamp      time,
-			void*               userData,
-			OTF2_AttributeList* attributeList,
-			OTF2_IoHandleRef    handle,
-			int64_t             offsetRequest,
-			OTF2_IoSeekOption   whence,
-			uint64_t            offsetResult );
+                                     OTF2_TimeStamp      time,
+                                     uint64_t            eventPosition,
+                                     void*               userData,
+                                     OTF2_AttributeList* attributeList,
+                                     OTF2_IoHandleRef    handle,
+                                     int64_t             offsetRequest,
+                                     OTF2_IoSeekOption   whence,
+                                     uint64_t            offsetResult );
 
 	static inline OTF2_CallbackCode io_change_status_flags_callback ( OTF2_LocationRef    location,
 			OTF2_TimeStamp      time,

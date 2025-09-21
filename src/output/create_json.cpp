@@ -6,8 +6,10 @@
 #include <cstdint>
 #include <fstream>
 #include <iostream>
+#include <numeric>
 #include <string>
 #include "all_data.h"
+#include "definitions.h"
 #include "otf2/OTF2_GeneralDefinitions.h"
 #include "rapidjson/document.h"
 #include "rapidjson/prettywriter.h"
@@ -60,6 +62,30 @@ struct ProfileEntry {
 
 using definitions::Definitions;
 using definitions::IoHandle;
+using AccessPatternTypeString = std::string;
+
+namespace access_pattern {
+
+	/**
+	 * @brief Get most dominant access pattern from list of accessed offsets
+	 */
+	AccessPatternTypeString get_access_pattern_from_offsets(std::vector<uint64_t> offsets)
+	{
+		if(offsets.empty())
+			return "contiguous";
+		else {
+			// 1) Check if strided (=equal distances btw offsets)
+			std::vector<uint64_t> offset_diffs(offsets.size());
+			std::adjacent_difference(offsets.begin(), offsets.end(), offset_diffs.begin());
+			offset_diffs.erase(offset_diffs.begin()); // first elem is copied from original vec when using `adjacent_difference()`
+
+			if (std::all_of(offset_diffs.begin(), offset_diffs.end(), [&offset_diffs](uint64_t x){ return x == offset_diffs[0]; }))
+				return "strided";
+			else
+				return "random";
+		}
+	}
+};
 
 /**
  *	Statistics stored per file
@@ -79,7 +105,14 @@ struct FileInfo {
         paradigm.insert(defs.io_paradigms.get(self->io_paradigm)->name);
         modes = self->modes;
 
-		exclusive_or_shared = self->requested_offset_per_location.size() > 1 ? 'S' : 'E'; // if more than two locations accessed this file it is shared
+		nr_accesses_from_different_locations = self->requested_offset_per_location.size(); // how many locations accessed the file
+		requested_offset_per_location = self->requested_offset_per_location;
+
+		std::cout << "FileInfo offsets: ";
+		for(auto& [_location, offsets] : self->requested_offset_per_location)
+			for(auto& offset: offsets)
+				std::cout << offset << ",";
+		std::cout << std::endl;
     }
 
 	// TODO: Remove Operator Overloading, make function more explicit
@@ -90,9 +123,22 @@ struct FileInfo {
         std::copy(rhs.paradigm.begin(), rhs.paradigm.end(), std::inserter(paradigm, paradigm.begin()));
         std::copy(rhs.modes.begin(), rhs.modes.end(), std::inserter(modes, modes.begin()));
 
-		exclusive_or_shared = rhs.exclusive_or_shared=='S' ? 'S' : exclusive_or_shared; // if either `FileInfo` contains info about file being shared, then it is shared
+		nr_accesses_from_different_locations += rhs.nr_accesses_from_different_locations;
+
+		for (const auto& [location, rhs_offsets] : rhs.requested_offset_per_location) {
+			cout << "Rhs offsets:";
+			for(auto &offset_rhs : rhs_offsets)
+				cout << offset_rhs << ",";
+			cout << std::endl;
+			requested_offset_per_location[location].insert(requested_offset_per_location[location].end(), rhs_offsets.begin(), rhs_offsets.end());
+
+			cout << "Own offsets:";
+			for(auto &offset_own : requested_offset_per_location[location])
+				cout << offset_own << ",";
+			cout << std::endl;
+		}
 		// TODO: Size/Timing stats are collected elsewhere (`bytes_read`,`bytes_write`,`time_spent_in_ticks`)
-    }
+	}
 
     std::string           filename;
 	/* I/O Paradigms used to perform I/O on file */
@@ -109,11 +155,35 @@ struct FileInfo {
 
 	// === Access Patterns (NEXT: TODO)
 	/* Whether file-access is exclusive ("E") or shared ("S") */
-	char			  	  exclusive_or_shared = 'E';
+	std::uint64_t 		  nr_accesses_from_different_locations = 0;
 	/* Whether file-access pattern is contiguous or strided or random */
 	std::string 		  contiguous_or_strided_or_random;
 
+	/* Just store IO-Handle to avoid copying over every thing into `Fileinfo` (especially offset-per-location Hashmap) */
+	mutable std::map<OTF2_LocationRef, std::vector<uint64_t>> requested_offset_per_location;
 	// TODO: time spent for meta-ops
+
+	/** @brief Returns file access pattern to this file per location
+	 * @returns "contiguous"|"random"|"strided"
+	 */
+	std::unordered_map<AccessPatternTypeString, uint64_t> get_nr_locations_per_file_access_pattern() const {
+		// TODO: NEXT
+		std::unordered_map<OTF2_LocationRef, AccessPatternTypeString> access_pattern_per_location;
+		for (const auto& [location, offsets] : requested_offset_per_location) {
+			cout << "!Offsets:";
+			for(auto& offset: offsets)
+				cout << offset << ",";
+			cout << std::endl;
+			access_pattern_per_location[location] = access_pattern::get_access_pattern_from_offsets(offsets);
+		}
+
+		std::unordered_map<AccessPatternTypeString, uint64_t> nr_locations_per_file_access_pattern;
+		for (const auto& [location, access_pattern] : access_pattern_per_location) {
+			++nr_locations_per_file_access_pattern[access_pattern];  // count each occurrence
+		}
+
+		return nr_locations_per_file_access_pattern;
+	}
 
     template <typename Writer>
     void WriteFileInfo(Writer& w) const {
@@ -147,12 +217,19 @@ struct FileInfo {
 		w.Key("Ticks spent");
 		w.Uint64(time_spent_in_ticks);
 
-		w.Key("Exclusive or Shared:");
-	 	char char_buffer[2] = {exclusive_or_shared, '\0'};
-		w.String(char_buffer);
+		w.Key("Nr accesses from different locations");
+		w.Uint64(nr_accesses_from_different_locations);
 
-		w.Key("Access Pattern");
-		w.String(contiguous_or_strided_or_random.c_str());
+		// store which access patterns have been used for accessin the files (both how many locations accessed file by this access pattern & % of time of accessing file in this pattern
+		w.Key("Access Patterns");
+		auto nr_locations_per_file_access_patterns = this->get_nr_locations_per_file_access_pattern();
+		// w.String(nr_locations_per_file_access_patterns.c_str());
+		w.StartObject();
+		for(auto& [access_pattern, nr_locations] : nr_locations_per_file_access_patterns) {
+			w.Key(access_pattern.c_str());
+			w.Uint64(nr_locations);
+		}
+		w.EndObject();
 
         w.EndObject();
     }
@@ -474,7 +551,6 @@ bool CreateJSON(AllData& alldata) {
         auto file_handle = file_entry.second;
 		uint64_t file_ref = file_entry.first;
         profile.file_data[file_handle.name] += FileInfo(alldata.definitions, file_ref);
-		cout << profile.file_data[file_handle.name].exclusive_or_shared << std::endl;
     }
 
 	/* 2) Store stats per file */
