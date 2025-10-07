@@ -18,7 +18,7 @@ namespace access_pattern_detection {
  *   @param v non-empty vector
  *   @returns (is_almost_equal,most_frequent_value)
  */
-std::pair<bool,uint64_t> is_almost_equal(std::vector<uint64_t> v)
+std::pair<bool,uint64_t> is_almost_equal(std::vector<uint64_t>& v)
 {
 	assert(!v.empty());
     std::unordered_map<int, size_t> freq;
@@ -37,7 +37,7 @@ std::pair<bool,uint64_t> is_almost_equal(std::vector<uint64_t> v)
  * @ref AccessPattern
  * @returns (true,<most_frequent_value>) if we consider the requested fpos to have (almost) equal distances
  */
-inline std::pair<bool,uint64_t> has_equi_distant_fpos(std::vector<uint64_t> fpos)
+inline std::pair<bool,uint64_t> has_equi_distant_fpos(std::vector<uint64_t>& fpos)
 {
 	std::vector<uint64_t> fpos_diffs(fpos.size());
 	std::adjacent_difference(fpos.begin(), fpos.end(), fpos_diffs.begin());
@@ -50,12 +50,12 @@ inline std::pair<bool,uint64_t> has_equi_distant_fpos(std::vector<uint64_t> fpos
  * @ref AccessPattern
  * @returns (true,<most_frequent_value>) if we consider the requested sizes to be (almost) equal
  */
-inline std::pair<bool,uint64_t> is_equally_sized_access(std::vector<uint64_t> sizes)
+inline std::pair<bool,uint64_t> is_equally_sized_access(std::vector<uint64_t>& sizes)
 {
 	return is_almost_equal(sizes);
 }
 
-AccessPattern detect_local_access_pattern(std::vector<std::pair<uint64_t,size_t>> io_accesses)
+AccessPattern detect_local_access_pattern(std::vector<std::pair<uint64_t,size_t>>& io_accesses)
 {
 	std::vector<uint64_t> file_positions;
 	std::ranges::transform(io_accesses, std::back_inserter(file_positions),
@@ -64,17 +64,17 @@ AccessPattern detect_local_access_pattern(std::vector<std::pair<uint64_t,size_t>
 	std::ranges::transform(io_accesses, std::back_inserter(sizes),
 						   [](auto const& p) { return p.second; });
 
-	bool is_equally_sized;
-	uint64_t size;
+	bool is_equally_sized, is_equi_distant_access;
+	uint64_t size, fpos_diff; // most frequent size & difference inbetween file positions
 
 	// NOTE: for less then `NR_ACCESSES_THRESHOLD` requests we can't really speak of an access pattern
 	if (io_accesses.size() < NR_ACCESSES_THRESHOLD)
 	 	return AccessPattern::NONE;
 	else
-		auto [is_equally_sized, size] = is_equally_sized_access(sizes);
+		std::tie(is_equally_sized, size) = is_equally_sized_access(sizes);
 
 	// Check if strided (=equal distances btw fposs)
-	auto [is_equi_distant_access, fpos_diff] = has_equi_distant_fpos(file_positions);
+	std::tie(is_equi_distant_access, fpos_diff) = has_equi_distant_fpos(file_positions);
 
 	if (is_equi_distant_access)
 		if (is_equally_sized) {

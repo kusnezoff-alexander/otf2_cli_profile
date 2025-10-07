@@ -95,7 +95,7 @@ struct OffsetOrSize
  *		- @ref AccessPattern::RANDOM if none of the above conditions are met
  *		- `EQUALLY_SIZED`-variants if @ref ALMOST_EQUAL_THRESHOLD of differences between offsets are equal
  */
-AccessPattern detect_local_access_pattern(std::vector<std::pair<uint64_t,size_t>> io_accesses);
+AccessPattern detect_local_access_pattern(std::vector<std::pair<uint64_t,size_t>>& io_accesses);
 
 
 /**
