@@ -53,7 +53,7 @@ spack install otf2@3.1.1 scorep@8.4 rapidjson
 Build & run:
 ```sh
 mkdir build & cd build
-cmake ..
+cmake .. # or `cmake -DCMAKE_BUILD_TYPE=Debug ..` for debug-build
 make
 make run_tests # to run BATS integration tests
 ```

@@ -304,7 +304,7 @@ struct NodeData {
     NodeData(const CollopData& _c_data) : f_data(), m_data(), c_data(_c_data) {}
 };
 
-/* Stores I/O Statistics per I/O Handle */
+/* Stores I/O Statistics per eg paradigm / location / @ref IoHandle */
 struct IoData {
 	/* Nr of I/O Ops that operated on the I/O Handle with which this IoData is associated */
     uint64_t num_operations;
@@ -313,13 +313,19 @@ struct IoData {
     uint64_t transfer_time;
 	/* Time spent in I/O but during which no bytes where read/written */
     uint64_t nontransfer_time;
-	/* File on which I/O has been performed */
+	/* File descriptor on which I/O has been performed */
 	OTF2_IoHandleRef io_handle;
 	/* Mode in which the op has been performed (read or write) */
 	std::string mode;
-	/* Region from which this IoData has been "generated" from (the region which issued the I/O) */
+	/* Region from which this IoData has been "generated" from (the region which issued the I/O)
+	 * TODO: change to optional type? (since it's set later?)
+	 * */
 	OTF2_RegionRef region;
     IoData() : num_operations(0), num_bytes(0), transfer_time(0), nontransfer_time(0), mode("-") {}
+    IoData(OTF2_IoHandleRef ioh)
+		: num_operations(0), num_bytes(0), transfer_time(0), nontransfer_time(0), mode("-") ,
+		  io_handle(ioh)
+	{}
 };
 
 #endif

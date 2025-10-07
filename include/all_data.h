@@ -32,12 +32,10 @@ struct AllData {
     /* runtime measurement */
     TimeMeasurement tm;
 
-    /* I/O summary per paradigm */
-    std::map<uint64_t, IoData> io_data_per_paradigm;
-	/* I/O Statistics per file
-	 * @note get corresponding @ref{IoHandle} by calling `auto h = alldata->definitions.iohandles.get(handle);` (eg to retrieve file name)
+    /** I/O summary per paradigm
+	 *	- filled in @ref OTF2Reader::io_operation_complete_callback
 	 * */
-    std::map<OTF2_IoHandleRef, IoData> io_data_per_file;
+    std::map<uint64_t, IoData> io_data_per_paradigm;
 	/* I/O Statistics per file
 	 * @note get corresponding @ref{IoHandle} by calling `auto h = alldata->definitions.regions.get(handle);` (eg to retrieve function name)
 	 * @TODO use to output per-function summary (eg of 50 most I/O-intensive functions - by time and size)

@@ -2,9 +2,11 @@
 #include <cstring>
 #include <iostream>
 #include <sstream>
+#include <variant>
 
 #include "OTF2Reader.h"
 #include "definitions.h"
+#include "main_structs.h"
 #include "otf2/OTF2_AttributeList.h"
 #include "otf2/OTF2_AttributeValue.h"
 #include "otf2/OTF2_Definitions.h"
@@ -222,15 +224,26 @@ OTF2_CallbackCode OTF2Reader::handle_def_io_handle(void* userData, OTF2_IoHandle
         auto strings = filesystem_entries.get(file);
         if (strings.second != OTF2_CALLBACK_SUCCESS)
             return strings.second;
-        alldata->definitions.iohandles.add(self,
-                                           {*strings.first[0], ioParadigm, file, parent, std::set<std::string>()});
+
+		std::string file_name = *strings.first[0];
+		// create new FileHandle if it doesn't exist yet
+		auto fh = std::make_shared<definitions::File>(file_name);
+		auto [it, inserted] = alldata->definitions.filehandles.emplace(file_name, fh);
+		it->second->io_handles.push_back(self);
+        alldata->definitions.iohandles.add(self, {self, fh, ioParadigm, file, parent});
         return OTF2_CALLBACK_SUCCESS;
     } else {
         auto strings = string_id.get(name);
         if (strings.second != OTF2_CALLBACK_SUCCESS)
             return strings.second;
-        alldata->definitions.iohandles.add(self,
-                                           {*strings.first[0], ioParadigm, file, parent, std::set<std::string>()});
+
+		std::string file_name = *strings.first[0];
+		// create new FileHandle if it doesn't exist yet
+		auto fh = std::make_shared<definitions::File>(file_name);
+		auto [it, inserted] = alldata->definitions.filehandles.emplace(file_name, fh);
+		it->second->io_handles.push_back(self);
+        alldata->definitions.iohandles.add(self, {self, it->second, ioParadigm, file, parent});
+
     }
     return OTF2_CALLBACK_SUCCESS;
 }
@@ -418,7 +431,7 @@ OTF2_CallbackCode OTF2Reader::handle_def_location(void* userData, OTF2_LocationR
 
             default:
                 return OTF2_CALLBACK_SUCCESS;  // nicht bekannt oder metric -> wird nicht in sysTree übernommen
-        }
+     }
 
     } else {
         os << location_name;
@@ -457,7 +470,7 @@ OTF2_CallbackCode OTF2Reader::handle_def_group(void* userData, OTF2_GroupRef gro
 
 /**
  * Store Region definitions (name, src-lines in code to which region refers, ..)
- * @TODO utilize `regionRole`?
+ * @todo utilize `regionRole`?
  */
 OTF2_CallbackCode OTF2Reader::handle_def_region(void* userData, OTF2_RegionRef regionIdentifier, OTF2_StringRef name,
                                                 OTF2_StringRef canonicalName, OTF2_StringRef description,
@@ -613,7 +626,9 @@ struct PendingIoEvt {
     uint64_t       bytes_request;
 };
 
-/* Keep track of open I/O events (since `IO_OPERATION_BEGIN`&`IO_OPERATION_END` might be nested arbitrarily */
+/* Keep track of open I/O events (since `IO_OPERATION_BEGIN`&`IO_OPERATION_END` might be nested arbitrarily
+ * - used to keep track of eg statistics inside @ref IoData
+ */
 static std::map<uint64_t, PendingIoEvt> open_io_events;
 
 OTF2_CallbackCode OTF2Reader::io_operation_begin_callback(OTF2_LocationRef locationID, OTF2_TimeStamp time, uint64_t eventPosition,
@@ -623,18 +638,20 @@ OTF2_CallbackCode OTF2Reader::io_operation_begin_callback(OTF2_LocationRef locat
     open_io_events[matchingId] = {time, bytesRequest};
     auto* alldata              = static_cast<AllData*>(userData);
     auto* h                    = alldata->definitions.iohandles.get(handle);
+
+	assert(h->location == locationID); // in theory `IoHandle`s should be only accessed by the same location
     if (!h)
         return OTF2_CALLBACK_ERROR;
     switch (mode) {
         case OTF2_IO_OPERATION_MODE_READ:
             h->modes.insert("R");
-			h->last_io_mode = std::string("R");
+			h->used_io_mode[matchingId] = std::string("R");
             break;
         case OTF2_IO_OPERATION_MODE_WRITE:
             h->modes.insert("W");
-			h->last_io_mode = std::string("W");
+			h->used_io_mode[matchingId] = std::string("W");
             break;
-        case OTF2_IO_OPERATION_MODE_FLUSH:
+        case OTF2_IO_OPERATION_MODE_FLUSH: // not relevant for our I/O Statistics
         default:
             break;
     }
@@ -647,8 +664,7 @@ OTF2_CallbackCode OTF2Reader::io_operation_begin_callback(OTF2_LocationRef locat
 	OTF2_AttributeRef first_attribute;
 	// auto status = OTF2_AttributeList_PopAttribute(attributeList, &first_attribute, &type, &attributeValue);
 	OTF2_ErrorCode status = OTF2_SUCCESS;
-	if(h->requested_offset_per_location.find(locationID) == h->requested_offset_per_location.end())
-		h->requested_offset_per_location[locationID] = {}; // some I/O don't provide an initial offset (eg if opened in APPEND-Mode
+
 	while( status == OTF2_SUCCESS && OTF2_AttributeList_GetNumberOfElements(attributeList)>0) {
 		status =  OTF2_AttributeList_PopAttribute(attributeList, &attribute, &type, &attributeValue);
 		auto name = alldata->definitions.attributes.get(attribute)->name;
@@ -656,8 +672,9 @@ OTF2_CallbackCode OTF2Reader::io_operation_begin_callback(OTF2_LocationRef locat
 		if(name == "Offset") {
 			assert(type == OTF2_TYPE_UINT64); // offsets should be of type uint64_t
 			offset = attributeValue.uint64;
-			// TODO: check IOSeek for offsets
-			h->requested_offset_per_location[locationID].push_back(offset);
+			// TODO: what is this offset relative to??
+			if (h->fpos == 0)
+				h->fpos = offset;
 		}
 	}
     return OTF2_CALLBACK_SUCCESS;
@@ -678,16 +695,16 @@ OTF2_CallbackCode OTF2Reader::io_operation_complete_callback(OTF2_LocationRef lo
 
 		uint64_t p = h->io_paradigm;
 		// Store statistics 1) per paradigm, 2) per file (IoHandle), 3) per location (process/thread, maybe region?)
-		std::array<IoData*, 3> io_data_stats = {
+		IoData* io_data_stats[3] = {
 			&(alldata->io_data_per_paradigm[p]),
-			&(alldata->io_data_per_file[handle]),
+			&(alldata->definitions.iohandles.get(handle)->io_data_stats),
 			&(alldata->io_data_per_location[locationID])
 		};
 
 		for(auto io_data: io_data_stats) {
 			io_data->num_operations++;
 			io_data->io_handle = handle;
-			io_data->mode= h->last_io_mode;
+			io_data->mode = h->used_io_mode[matchingId];
 			if (bytesResult != OTF2_UNDEFINED_UINT64) {
 				io_data->num_bytes += bytesResult;
 				io_data->transfer_time += duration;
@@ -697,6 +714,18 @@ OTF2_CallbackCode OTF2Reader::io_operation_complete_callback(OTF2_LocationRef lo
 			auto region_id =  node_stack.front().node_p->function_id;
 			io_data->region = region_id;
 		}
+
+		h->io_accesses.push_back({time, {h->fpos, bytesResult}});
+
+		// Update `fpos`
+		h->fpos += bytesResult;
+		// If necessary update file-size
+		h->file_handle->fsize_mutex->lock(); // TODO: synchronize btw MPI-Processes
+		if (h->fpos > h->file_handle->fsize) {
+			// we have written bytes exceeding `fsize`
+			h->file_handle->fsize = h->fpos;
+		}
+		h->file_handle->fsize_mutex->unlock();
     }
     return OTF2_CALLBACK_SUCCESS;
 }
@@ -713,7 +742,28 @@ OTF2_CallbackCode OTF2Reader::io_seek_callback ( OTF2_LocationRef    location,
 {
     auto* alldata = static_cast<AllData*>(userData);
     auto* ioh     = alldata->definitions.iohandles.get(handle);
-	ioh->requested_offset_per_location[location].push_back(offsetResult);
+
+	if (whence == OTF2_IO_SEEK_FROM_START) {
+		ioh->fpos = offsetResult;
+	} else if (whence == OTF2_IO_SEEK_FROM_CURRENT) {
+		// TODO: requires tracking of current file-pos of location inside file
+		auto absolute_offset = ioh->fpos + offsetResult;
+		ioh->fpos = absolute_offset;
+	} else if (whence == OTF2_IO_SEEK_FROM_END) {
+		// TODO: requires tracking of current file-size (!across locations)
+		auto absolute_offset = ioh->file_handle->fsize + offsetResult; // TODO: possible race condition?
+		ioh->fpos = absolute_offset;
+	} else if (whence == OTF2_IO_SEEK_DATA) {
+		// TODO: would require to track whole file contents (alongside current fpos) ??
+		// to know where data&hole sections are located
+		std::cerr << "[" << __func__ << "] `whence == OTF2_IO_SEEK_DATA` not supported" << std::endl;
+		std::exit(EXIT_FAILURE);
+	} else if (whence == OTF2_IO_SEEK_HOLE) {
+		// TODO: would require to track whole file contents (alongside current fpos) ??
+		// to know where data&hole sections are located
+		std::cerr << "[" << __func__ << "] `whence == OTF2_IO_SEEK_DATA` not supported" << std::endl;
+		std::exit(EXIT_FAILURE);
+	}
 	// NOTE: do we care about `offsetRequest`?
 	std::cout << "Callback io_seek_callback:" << offsetResult << std::endl;
 	return OTF2_CALLBACK_SUCCESS;
@@ -726,6 +776,7 @@ OTF2_CallbackCode OTF2Reader::io_create_handle_callback(OTF2_LocationRef locatio
                                                       OTF2_IoStatusFlag statusFlags) {
     auto* alldata = static_cast<AllData*>(userData);
     auto* ioh     = alldata->definitions.iohandles.get(handle);
+	ioh->location = locationID;
     switch (mode) {
         case OTF2_IO_ACCESS_MODE_READ_ONLY:
             ioh->modes.insert("R");
@@ -769,12 +820,13 @@ OTF2_CallbackCode OTF2Reader::handle_metric(OTF2_LocationRef locationID, OTF2_Ti
                 if (metric_ref != class_mapping->metric_member.end() && metric_def != nullptr && metric_def->allowed) {
                     MetricData md;
 
+					// TODO: What did they do here (and why?)
                     if (typeIDs[i] == OTF2_TYPE_UINT64) {
-                        md = {MetricDataType::UINT64, metricValues[i].unsigned_int, metricValues[i].unsigned_int};
+                        md = {MetricDataType::UINT64, metricValues[i].unsigned_int, static_cast<int64_t>(metricValues[i].unsigned_int)};
                     } else if (typeIDs[i] == OTF2_TYPE_INT64) {
-                        md = {MetricDataType::INT64, metricValues[i].signed_int, metricValues[i].signed_int};
+                        md = {MetricDataType::INT64, static_cast<uint64_t>(metricValues[i].signed_int), metricValues[i].signed_int};
                     } else if (typeIDs[i] == OTF2_TYPE_DOUBLE) {
-                        md = {MetricDataType::DOUBLE, metricValues[i].floating_point, metricValues[i].floating_point};
+                        md = {MetricDataType::DOUBLE, static_cast<uint64_t>(metricValues[i].floating_point), static_cast<int64_t>(metricValues[i].floating_point)};
                     }
 
                     tmp_metric.insert(make_pair(metric_ref->second, md));

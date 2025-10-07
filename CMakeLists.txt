@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 3.8)
+cmake_minimum_required (VERSION 3.10)
 
 # Set the version number
 project ( OTFProfiler VERSION 2.0.0 )
@@ -7,18 +7,22 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(CMAKE_CXX_STANDARD 20)       # or 20, 23...
 
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=address -fno-omit-frame-pointer")
+set(CMAKE_LINKER_FLAGS_DEBUG "${CMAKE_LINKER_FLAGS_DEBUG} -fsanitize=address")
+
 include_directories("${PROJECT_BINARY_DIR}")
 include_directories("${PROJECT_SOURCE_DIR}/include")
 include_directories("${PROJECT_SOURCE_DIR}/include/reader")
 include_directories("${PROJECT_SOURCE_DIR}/include/output")
+include_directories("${PROJECT_SOURCE_DIR}/include/analysis")
 
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake;${CMAKE_MODULE_PATH}")
 
 add_compile_options(-Wno-error)
 
 # === Custom cmake file
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/") # own `.cmake` files: eg `Doxygen.cmake` for generating Docs, `Format.cmake` for consistent formatting
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/module/") # add module files for external pkgs under `cmake/modules`
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/") 		# own `.cmake` files: eg `Format.cmake` for consistent formatting
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/module/") 	# add module files for external pkgs under `cmake/modules`
 include(DefaultBuildType)
 include(BatsTests)
 
@@ -94,6 +98,7 @@ set(SOURCE_FILES
     src/data_tree.cpp
     src/otf-profiler.cpp
     src/definitions.cpp
+	src/analysis/access_pattern_detection.cpp
 )
 
 if (HAVE_OPEN_TRACE_FORMAT AND USE_OTF)
@@ -160,4 +165,10 @@ if (HAVE_MPI AND USE_MPI)
     target_compile_definitions(otf-profiler-mpi PUBLIC OTFPROFILER_MPI)
     target_compile_features(otf-profiler-mpi PUBLIC cxx_std_11)
     target_link_libraries (otf-profiler-mpi ${EXTRA_LIBS} ${MPI_CXX_LIBRARIES})
+endif()
+
+# Docs
+option (BUILD_DOCS "Build Docs" ON)
+if (BUILD_DOCS)
+	add_subdirectory(docs)
 endif()

@@ -107,12 +107,16 @@ bool JsonReader::readDefinitions(AllData& alldata){
     const rapidjson::Value& iohandles = document["Definitions"]["iohandles"];
     for(const auto& iohandle : iohandles.GetArray()){
         uint64_t    iohandle_id    = std::stoll(iohandle.MemberBegin()->name.GetString());
-        std::string name           = iohandle.MemberBegin()->value["name"].GetString();
+        std::string file_name           = iohandle.MemberBegin()->value["name"].GetString();
         uint32_t    io_paradigm    = iohandle.MemberBegin()->value["io_paradigm"].GetUint();
         uint64_t    file           = iohandle.MemberBegin()->value["file"].GetUint64();
         uint64_t    parent         = iohandle.MemberBegin()->value["parent"].GetUint64();
 
-        alldata.definitions.iohandles.add(iohandle_id, definitions::IoHandle{name, io_paradigm, file, parent});
+		auto fh = std::make_shared<definitions::File>(file_name);
+		auto [it, inserted] = alldata.definitions.filehandles.emplace(file_name, fh);
+		it->second->io_handles.push_back(iohandle_id);
+		auto ioh = definitions::IoHandle(iohandle_id, fh, io_paradigm, file, parent);
+        alldata.definitions.iohandles.add(iohandle_id, ioh);
     }
 
     // parse definitions::groups
@@ -194,8 +198,8 @@ void read_node(const rapidjson::Value& node, AllData& alldata, std::shared_ptr<t
                 metric_id,
                 {
                     static_cast<MetricDataType> (metric.MemberBegin()->value["MetricDataType"].GetUint()),
-                    {metric.MemberBegin()->value["data_incl"]["u"].GetUint64()},
-                    {metric.MemberBegin()->value["data_excl"]["u"].GetUint64()}
+                    metric.MemberBegin()->value["data_incl"]["u"].GetUint64(),
+                    metric.MemberBegin()->value["data_excl"]["u"].GetInt64()
                 }
             );
         }

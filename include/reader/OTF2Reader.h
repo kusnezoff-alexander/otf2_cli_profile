@@ -54,11 +54,11 @@ class OTF2Reader : public TraceReader {
 
     ~OTF2Reader() { close(); }
 
-    void close();
-    bool initialize(AllData& alldata);
-    bool readDefinitions(AllData& alldata);
-    bool readEvents(AllData& alldata);
-    bool readStatistics(AllData& alldata);
+    void close() override;
+    bool initialize(AllData& alldata) override;
+    bool readDefinitions(AllData& alldata) override;
+    bool readEvents(AllData& alldata) override;
+    bool readStatistics(AllData& alldata) override;
 
    private:
     OTF2_Reader* _reader;
@@ -76,6 +76,8 @@ class OTF2Reader : public TraceReader {
                                                     OTF2_IoOperationMode mode, OTF2_IoOperationFlag flag,
                                                     uint64_t bytesRequest, uint64_t matchingId);
 
+	// Updates `fsize` and (per-location) `fpos` of corresponding @ref IoHandle
+	// +collects I/O statistics per paradigm/IoHandle/location
     static inline OTF2_CallbackCode io_operation_complete_callback(OTF2_LocationRef locationID, OTF2_TimeStamp time,
                                                   uint64_t eventPosition, void* userData,
                                                   OTF2_AttributeList* attributeList, OTF2_IoHandleRef handle,
@@ -104,6 +106,7 @@ class OTF2Reader : public TraceReader {
 			OTF2_IoStatusFlag   statusFlags );
 
 
+	// @param whence see OTF2_IoSeekOption_enum
 	static inline OTF2_CallbackCode io_seek_callback ( OTF2_LocationRef    location,
                                      OTF2_TimeStamp      time,
                                      uint64_t            eventPosition,
@@ -167,7 +170,7 @@ class OTF2Reader : public TraceReader {
      *                       mapping table of type OTF2_MAPPING_REGION
      *                       is available.
      *
-     *  @return @eref{OTF2_CALLBACK_SUCCESS} or @eref{OTF2_CALLBACK_INTERRUPT}.
+     *  @return OTF2_CALLBACK_SUCCESS or OTF2_CALLBACK_INTERRUPT.
      */
     static inline OTF2_CallbackCode handle_enter(OTF2_LocationRef locationID, OTF2_TimeStamp time,
                                                  uint64_t eventPosition, void* userData,
@@ -187,7 +190,7 @@ class OTF2Reader : public TraceReader {
      *                       mapping table of type OTF2_MAPPING_REGION
      *                       is available.
      *
-     *  @return @eref{OTF2_CALLBACK_SUCCESS} or @eref{OTF2_CALLBACK_INTERRUPT}.
+     *  @return OTF2_CALLBACK_SUCCESS or OTF2_CALLBACK_INTERRUPT.
      */
     static inline OTF2_CallbackCode handle_leave(OTF2_LocationRef locationID, OTF2_TimeStamp time,
                                                  uint64_t eventPosition, void* userData,
@@ -212,7 +215,7 @@ class OTF2Reader : public TraceReader {
      *  @param msgTag        Message tag.
      *  @param msgLength     Message length.
      *
-     *  @return @eref{OTF2_CALLBACK_SUCCESS} or @eref{OTF2_CALLBACK_INTERRUPT}.
+     *  @return OTF2_CALLBACK_SUCCESS or OTF2_CALLBACK_INTERRUPT.
      */
     static inline OTF2_CallbackCode handle_mpi_send(OTF2_LocationRef locationID, OTF2_TimeStamp time,
                                                     uint64_t eventPosition, void* userData,
@@ -239,7 +242,7 @@ class OTF2Reader : public TraceReader {
      *  @param msgLength     Message length.
      *  @param requestID     ID of the related request.
      *
-     *  @return @eref{OTF2_CALLBACK_SUCCESS} or @eref{OTF2_CALLBACK_INTERRUPT}.
+     *  @return OTF2_CALLBACK_SUCCESS or OTF2_CALLBACK_INTERRUPT.
      */
     static inline OTF2_CallbackCode handle_mpi_isend(OTF2_LocationRef locationID, OTF2_TimeStamp time,
                                                      uint64_t eventPosition, void* userData,
@@ -261,7 +264,7 @@ class OTF2Reader : public TraceReader {
      *  @param attributeList Additional attributes for this event.
      *  @param requestID     ID of the related request.
      *
-     *  @return @eref{OTF2_CALLBACK_SUCCESS} or @eref{OTF2_CALLBACK_INTERRUPT}.
+     *  @return OTF2_CALLBACK_SUCCESS or OTF2_CALLBACK_INTERRUPT.
      */
     // TODO nicht verwendet
     /*
@@ -289,7 +292,7 @@ class OTF2Reader : public TraceReader {
      *  @param msgtTg        Message tag.
      *  @param msgLength     Message length.
      *
-     *  @return @eref{OTF2_CALLBACK_SUCCESS} or @eref{OTF2_CALLBACK_INTERRUPT}.
+     *  @return OTF2_CALLBACK_SUCCESS or OTF2_CALLBACK_INTERRUPT.
      */
     static inline OTF2_CallbackCode handle_mpi_recv(OTF2_LocationRef locationID, OTF2_TimeStamp time,
                                                     uint64_t eventPosition, void* userData,
@@ -306,15 +309,15 @@ class OTF2Reader : public TraceReader {
      *  @param attributeList Additional attributes for this event.
      *  @param requestID     ID of the requested receive.
      *
-     *  @return @eref{OTF2_CALLBACK_SUCCESS} or @eref{OTF2_CALLBACK_INTERRUPT}.
+     *  @return OTF2_CALLBACK_SUCCESS or OTF2_CALLBACK_INTERRUPT.
      */
-    /*TODO nie verwendet
+    //TODO nie verwendet
     static inline OTF2_CallbackCode handle_mpi_irecv_request(OTF2_LocationRef locationID,
                                                              OTF2_TimeStamp   time,
                                                              uint64_t eventPosition, void* userData,
                                                              OTF2_AttributeList* attributeList,
                                                              uint64_t            requestID);
-*/
+
     /** @brief Callback for the MpiIrecv event record.
      *
      *  An MpiIrecv record indicates that a non-blocking MPI message was
@@ -335,7 +338,7 @@ class OTF2Reader : public TraceReader {
      *  @param msgLength     Message length.
      *  @param requestID     ID of the related request.
      *
-     *  @return @eref{OTF2_CALLBACK_SUCCESS} or @eref{OTF2_CALLBACK_INTERRUPT}.
+     *  @return OTF2_CALLBACK_SUCCESS or OTF2_CALLBACK_INTERRUPT.
      */
     static inline OTF2_CallbackCode handle_mpi_irecv(OTF2_LocationRef locationID, OTF2_TimeStamp time,
                                                      uint64_t eventPosition, void* userData,
@@ -354,15 +357,13 @@ class OTF2Reader : public TraceReader {
      *  @param attributeList Additional attributes for this event.
      *  @param stopTime      The time the buffer flush finished.
      *
-     *  @return @eref{OTF2_CALLBACK_SUCCESS} or @eref{OTF2_CALLBACK_INTERRUPT}.
+     *  @return OTF2_CALLBACK_SUCCESS or OTF2_CALLBACK_INTERRUPT.
      */
     // TODO nicht verwendet
-    /*
     static inline OTF2_CallbackCode handle_buffer_flush(OTF2_LocationRef locationID,
                                                         OTF2_TimeStamp time, void* userData,
                                                         OTF2_AttributeList* attributeList,
                                                         OTF2_TimeStamp      stopTime);
-*/
 
     /** @brief Callback for the MpiRequestTest event record.
      *
@@ -374,15 +375,14 @@ class OTF2Reader : public TraceReader {
      *  @param attributeList Additional attributes for this event.
      *  @param requestID     ID of the related request.
      *
-     *  @return @eref{OTF2_CALLBACK_SUCCESS} or @eref{OTF2_CALLBACK_INTERRUPT}.
+     *  @return OTF2_CALLBACK_SUCCESS or OTF2_CALLBACK_INTERRUPT.
      */
-    /*TODO nicht verwendet
+    //TODO nicht verwendet
     static inline OTF2_CallbackCode handle_mpi_request_test(OTF2_LocationRef locationID,
                                                             OTF2_TimeStamp   time,
                                                             uint64_t eventPosition, void* userData,
                                                             OTF2_AttributeList* attributeList,
                                                             uint64_t            requestID);
-    */
 
     /** @brief Callback for the MpiCollectiveBegin event record.
      *
@@ -395,15 +395,14 @@ class OTF2Reader : public TraceReader {
      *  @param userData      User data.
      *  @param attributeList Additional attributes for this event.
      *
-     *  @return @eref{OTF2_CALLBACK_SUCCESS} or @eref{OTF2_CALLBACK_INTERRUPT}.
+     *  @return OTF2_CALLBACK_SUCCESS or OTF2_CALLBACK_INTERRUPT.
      */
-    /* TODO nicht verwendet
+    // TODO nicht verwendet
     static inline OTF2_CallbackCode handle_mpi_collective_begin(OTF2_LocationRef    locationID,
                                                                 OTF2_TimeStamp      time,
                                                                 uint64_t            eventPosition,
                                                                 void*               userData,
                                                                 OTF2_AttributeList* attributeList);
-    */
 
     /** @brief Callback for the MpiCollectiveEnd event record.
      *
@@ -426,7 +425,7 @@ class OTF2Reader : public TraceReader {
      *  @param sizeSent      Size of the sent message.
      *  @param sizeReceived  Size of the received message.
      *
-     *  @return @eref{OTF2_CALLBACK_SUCCESS} or @eref{OTF2_CALLBACK_INTERRUPT}.
+     *  @return OTF2_CALLBACK_SUCCESS or OTF2_CALLBACK_INTERRUPT.
      */
     static inline OTF2_CallbackCode handle_mpi_collective_end(OTF2_LocationRef locationID, OTF2_TimeStamp time,
                                                               uint64_t eventPosition, void* userData,
@@ -444,15 +443,13 @@ class OTF2Reader : public TraceReader {
      *  @param attributeList            Additional attributes for this event.
      *  @param numberOfRequestedThreads Requested size of the team.
      *
-     *  @return @eref{OTF2_CALLBACK_SUCCESS} or @eref{OTF2_CALLBACK_INTERRUPT}.
+     *  @return OTF2_CALLBACK_SUCCESS or OTF2_CALLBACK_INTERRUPT.
      */
     // TODO nicht verwendet
-    /*
     static inline OTF2_CallbackCode handle_omp_fork(OTF2_LocationRef locationID,
                                                     OTF2_TimeStamp time, void* userData,
                                                     OTF2_AttributeList* attributeList,
                                                     uint32_t            numberOfRequestedThreads);
-    */
 
     /** @brief Callback for the OmpJoin event record.
      *
@@ -464,14 +461,12 @@ class OTF2Reader : public TraceReader {
      *  @param userData      User data.
      *  @param attributeList Additional attributes for this event.
      *
-     *  @return @eref{OTF2_CALLBACK_SUCCESS} or @eref{OTF2_CALLBACK_INTERRUPT}.
+     *  @return OTF2_CALLBACK_SUCCESS or OTF2_CALLBACK_INTERRUPT.
      */
     // TODO nicht verwendet
-    /*
     static inline OTF2_CallbackCode handle_omp_join(OTF2_LocationRef locationID,
                                                     OTF2_TimeStamp time, void* userData,
                                                     OTF2_AttributeList* attributeList);
-    */
 
     /** @brief Callback for the OmpAcquireLock event record.
      *
@@ -489,7 +484,7 @@ class OTF2Reader : public TraceReader {
      *                          this is otherwise not possible). Corresponding
      *                          acquire-release events have same values.
      *
-     *  @return @eref{OTF2_CALLBACK_SUCCESS} or @eref{OTF2_CALLBACK_INTERRUPT}.
+     *  @return OTF2_CALLBACK_SUCCESS or OTF2_CALLBACK_INTERRUPT.
      */
     static inline OTF2_CallbackCode handle_omp_acquire_lock(OTF2_LocationRef locationID, OTF2_TimeStamp time,
                                                             void* userData, OTF2_AttributeList* attributeList,
@@ -509,7 +504,7 @@ class OTF2Reader : public TraceReader {
      *                           this is otherwise not possible). Corresponding
      *                           acquire-release events have same values.
      *
-     *  @return @eref{OTF2_CALLBACK_SUCCESS} or @eref{OTF2_CALLBACK_INTERRUPT}.
+     *  @return OTF2_CALLBACK_SUCCESS or OTF2_CALLBACK_INTERRUPT.
      */
     static inline OTF2_CallbackCode handle_omp_release_lock(OTF2_LocationRef locationID, OTF2_TimeStamp time,
                                                             void* userData, OTF2_AttributeList* attributeList,
@@ -526,7 +521,7 @@ class OTF2Reader : public TraceReader {
      *  @param attributeList Additional attributes for this event.
      *  @param taskID        Identifier of the newly created task instance.
      *
-     *  @return @eref{OTF2_CALLBACK_SUCCESS} or @eref{OTF2_CALLBACK_INTERRUPT}.
+     *  @return OTF2_CALLBACK_SUCCESS or OTF2_CALLBACK_INTERRUPT.
      */
     static inline OTF2_CallbackCode handle_omp_task_create(OTF2_LocationRef locationID, OTF2_TimeStamp time,
                                                            void* userData, OTF2_AttributeList* attributeList,
@@ -545,7 +540,7 @@ class OTF2Reader : public TraceReader {
      *  @param attributes    Additional attributes for this event.
      *  @param taskID        Identifier of the now active task instance.
      *
-     *  @return @eref{OTF2_CALLBACK_SUCCESS} or @eref{OTF2_CALLBACK_INTERRUPT}.
+     *  @return OTF2_CALLBACK_SUCCESS or OTF2_CALLBACK_INTERRUPT.
      */
     static inline OTF2_CallbackCode handle_omp_task_switch(OTF2_LocationRef locationID, OTF2_TimeStamp time,
                                                            void* userData, OTF2_AttributeList* attributeList,
@@ -562,7 +557,7 @@ class OTF2Reader : public TraceReader {
      *  @param attributeList Additional attributes for this event.
      *  @param taskID        Identifier of the completed task instance.
      *
-     *  @return @eref{OTF2_CALLBACK_SUCCESS} or @eref{OTF2_CALLBACK_INTERRUPT}.
+     *  @return OTF2_CALLBACK_SUCCESS or OTF2_CALLBACK_INTERRUPT.
      */
     static inline OTF2_CallbackCode handle_omp_task_complete(OTF2_LocationRef locationID, OTF2_TimeStamp time,
                                                              void* userData, OTF2_AttributeList* attributeList,
@@ -589,7 +584,7 @@ class OTF2Reader : public TraceReader {
      *  @param typeIDs           List of metric types.
      *  @param metricValues      List of metric values.
      *
-     *  @return @eref{OTF2_CALLBACK_SUCCESS} or @eref{OTF2_CALLBACK_INTERRUPT}.
+     *  @return OTF2_CALLBACK_SUCCESS or OTF2_CALLBACK_INTERRUPT.
      */
     static inline OTF2_CallbackCode handle_metric(OTF2_LocationRef locationID, OTF2_TimeStamp time,
                                                   uint64_t eventPosition, void* userData,
@@ -598,7 +593,7 @@ class OTF2Reader : public TraceReader {
                                                   const OTF2_MetricValue* metricValues);
 
     // TODO comments
-    /*TODO nicht verwendet
+	// nicht verwendet
     static inline OTF2_CallbackCode handle_rma_put(OTF2_LocationRef locationID, OTF2_TimeStamp time,
                                                    void*               userData,
                                                    OTF2_AttributeList* attributeList,
@@ -606,7 +601,7 @@ class OTF2Reader : public TraceReader {
                                                    uint64_t bytes, uint64_t matchingId);
 
     // TODO comments
-
+	// nicht verwendet
     static inline OTF2_CallbackCode handle_rma_get(OTF2_LocationRef locationID, OTF2_TimeStamp time,
                                                    void*               userData,
                                                    OTF2_AttributeList* attributeList,
@@ -614,7 +609,7 @@ class OTF2Reader : public TraceReader {
                                                    uint64_t bytes, uint64_t matchingId);
 
     // TODO comments
-
+	// nicht verwendet
     static inline OTF2_CallbackCode handle_rma_n_block_complete(OTF2_LocationRef locationID,
                                                                 OTF2_TimeStamp time, void* userData,
                                                                 OTF2_AttributeList* attributeList,
@@ -622,13 +617,12 @@ class OTF2Reader : public TraceReader {
                                                                 uint64_t            matchingId);
 
     // TODO comments
-
+	// nicht verwendet
     static inline OTF2_CallbackCode handle_rma_block_complete(OTF2_LocationRef locationID,
                                                               OTF2_TimeStamp time, void* userData,
                                                               OTF2_AttributeList* attributeList,
                                                               OTF2_RmaWinRef      win,
                                                               uint64_t            matchingId);
-    */
 
     /** @brief Callback for an unknown event record.
      *
@@ -637,13 +631,13 @@ class OTF2Reader : public TraceReader {
      *  @param userData          User data.
      *  @param attributeList     Additional attributes for this event.
      *
-     *  @return @eref{OTF2_CALLBACK_SUCCESS} or @eref{OTF2_CALLBACK_INTERRUPT}.
+     *  @return OTF2_CALLBACK_SUCCESS or OTF2_CALLBACK_INTERRUPT.
      */
-    /*TODO nicht verwendet
+    //TODO nicht verwendet
     static inline OTF2_CallbackCode handle_unknown(OTF2_LocationRef locationID, OTF2_TimeStamp time,
                                                    void*               userData,
                                                    OTF2_AttributeList* attributeList);
-    */
+
     /* ************************************************************** */
     /*                                                                */
     /*                          DEFINITIONS                           */
@@ -681,7 +675,7 @@ class OTF2Reader : public TraceReader {
      *                          between the smallest and greatest timestamp
      *                          of all event timestamps.
      *
-     * @return @eref{OTF2_CALLBACK_SUCCESS} or @eref{OTF2_CALLBACK_INTERRUPT}.
+     * @return OTF2_CALLBACK_SUCCESS or OTF2_CALLBACK_INTERRUPT.
      */
 
     #if VERSION_OTF2_MAJOR >= 3
@@ -700,9 +694,9 @@ class OTF2Reader : public TraceReader {
      *  @param name              Name of the group. References String definition.
      *  @param locationGroupType Type of this group.
      *  @param systemTreeParent  Parent of this location group in the system tree.
-     *                           References a @ref SystemTreeNode definition.
+     *                           References a SystemTreeNode definition.
      *
-     *  @return @eref{OTF2_CALLBACK_SUCCESS} or @eref{OTF2_CALLBACK_INTERRUPT}.
+     *  @return OTF2_CALLBACK_SUCCESS or OTF2_CALLBACK_INTERRUPT.
      */
 
     #if VERSION_OTF2_MAJOR >= 3
@@ -731,7 +725,7 @@ class OTF2Reader : public TraceReader {
      *  @param locationGroup       Location group which includes this location.
      *                             References a LocationGroup definition.
      *
-     *  @return @eref{OTF2_CALLBACK_SUCCESS} or @eref{OTF2_CALLBACK_INTERRUPT}.
+     *  @return OTF2_CALLBACK_SUCCESS or OTF2_CALLBACK_INTERRUPT.
      */
     static inline OTF2_CallbackCode handle_def_location(void* userData, OTF2_LocationRef locationIdentifier,
                                                         OTF2_StringRef name, OTF2_LocationType locationType,
@@ -750,7 +744,7 @@ class OTF2Reader : public TraceReader {
      *  @param numberOfMembers The number of members in this group.
      *  @param members         The identifiers of the group members.
      *
-     *  @return @eref{OTF2_CALLBACK_SUCCESS} or @eref{OTF2_CALLBACK_INTERRUPT}.
+     *  @return OTF2_CALLBACK_SUCCESS or OTF2_CALLBACK_INTERRUPT.
      */
     static inline OTF2_CallbackCode handle_def_group(void* userData, OTF2_GroupRef groupIdentifier, OTF2_StringRef name,
                                                      OTF2_GroupType groupType, OTF2_Paradigm paradigm,
@@ -778,7 +772,7 @@ class OTF2Reader : public TraceReader {
      *  @param endLineNumber	   Ending line number of this region in the
      *                             source file.
      *
-     *  @return @eref{OTF2_CALLBACK_SUCCESS} or @eref{OTF2_CALLBACK_INTERRUPT}.
+     *  @return OTF2_CALLBACK_SUCCESS or OTF2_CALLBACK_INTERRUPT.
      */
     static inline OTF2_CallbackCode handle_def_region(void* userData, OTF2_RegionRef regionIdentifier,
                                                       OTF2_StringRef name, OTF2_StringRef canonicalName,
@@ -787,21 +781,21 @@ class OTF2Reader : public TraceReader {
                                                       OTF2_StringRef sourceFile, uint32_t beginLineNumber,
                                                       uint32_t endLineNumber);
 
-    /** @brief Callback which is triggered by a @ref SystemTreeNode definition record.
+    /** @brief Callback which is triggered by a SystemTreeNode definition record.
      *
      *  @param userData                 User data.
      *
      *  @param systemTreeIdentifier     The unique identifier for this SystemTreeNode definition.
      *  @param name                     Free form instance name of this node. References String
-     * definition.
-     *  @param className                Free form class name of this node References a @ref String
+     * 									definition.
+     *  @param className                Free form class name of this node References a String
      *                                  definition.
      *  @param parent                   Parent id of this node. May be
-     *                                  @eref{OTF2_UNDEFINED_SYSTEM_TREE_NODE} to indicate that
-     *                                  there is no parent. References a @ref SystemTreeNode
+     *                                  OTF2_UNDEFINED_SYSTEM_TREE_NODE to indicate that
+     *                                  there is no parent. References a SystemTreeNode
      *                                  definition.
      *
-     *  @return @eref{OTF2_CALLBACK_SUCCESS} or @eref{OTF2_CALLBACK_INTERRUPT}.
+     *  @return OTF2_CALLBACK_SUCCESS or OTF2_CALLBACK_INTERRUPT.
      */
     static inline OTF2_CallbackCode handle_def_system_tree_node(void*                  userData,
                                                                 OTF2_SystemTreeNodeRef systemTreeIdentifier,
@@ -826,7 +820,7 @@ class OTF2Reader : public TraceReader {
      *  @param stringIdentifier    The unique identifier for this String definition.
      *  @param string	           The string, null terminated.
      *
-     *  @return @eref{OTF2_CALLBACK_SUCCESS} or @eref{OTF2_CALLBACK_INTERRUPT}.
+     *  @return OTF2_CALLBACK_SUCCESS or OTF2_CALLBACK_INTERRUPT.
      */
     static inline OTF2_CallbackCode handle_def_string(void* userData, OTF2_StringRef stringIdentifier,
                                                       const char* string);

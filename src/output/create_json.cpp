@@ -16,9 +16,12 @@
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/writer.h"
 
+#include "access_pattern_detection.h"
+
 using namespace rapidjson;
 using std::cout;
 using std::string;
+using namespace definitions;
 
 template <typename os_t>
 class PlainWriter {
@@ -72,6 +75,7 @@ namespace access_pattern {
 	AccessPatternTypeString get_access_pattern_from_offsets(std::vector<uint64_t> offsets)
 	{
 		if(offsets.empty())
+			// assume that this only happens in `O_APPEND`-mode
 			return "contiguous";
 		else {
 			// 1) Check if strided (=equal distances btw offsets)
@@ -93,26 +97,25 @@ namespace access_pattern {
 struct FileInfo {
     FileInfo() : parentfile(NULL) {}
 	/* Construct FileInfo given file_ref-id (from Definitions) */
-    FileInfo(const Definitions& defs, uint64_t id) {
+    FileInfo(const Definitions& defs, OTF2_IoHandleRef id) {
         parentfile           = NULL;
-        const IoHandle* self = defs.iohandles.get(id);
-        if (!self)
+        const IoHandle* ioh = defs.iohandles.get(id);
+        if (!ioh)
             return;
-        const IoHandle* parent = defs.iohandles.get(self->parent);
+        const IoHandle* parent = defs.iohandles.get(ioh->parent);
         if (parent)
-            parentfile = new FileInfo(defs, self->parent);
-        filename = self->name;
-        paradigm.insert(defs.io_paradigms.get(self->io_paradigm)->name);
-        modes = self->modes;
+            parentfile = new FileInfo(defs, ioh->parent);
+        filename = ioh->file_handle->file_name;
+        paradigm.insert(defs.io_paradigms.get(ioh->io_paradigm)->name);
+        modes = ioh->modes;
 
-		nr_accesses_from_different_locations = self->requested_offset_per_location.size(); // how many locations accessed the file
-		requested_offset_per_location = self->requested_offset_per_location;
 
-		std::cout << "FileInfo offsets: ";
-		for(auto& [_location, offsets] : self->requested_offset_per_location)
-			for(auto& offset: offsets)
-				std::cout << offset << ",";
-		std::cout << std::endl;
+		std::cout << ioh->file_handle->file_name << std::endl;
+		// some io-handles might not contain a location (TODO: check!)
+		if (ioh->location.has_value()) {
+			auto location = ioh->location.value();
+			locations.insert(location);
+		}
     }
 
 	// TODO: Remove Operator Overloading, make function more explicit
@@ -123,20 +126,7 @@ struct FileInfo {
         std::copy(rhs.paradigm.begin(), rhs.paradigm.end(), std::inserter(paradigm, paradigm.begin()));
         std::copy(rhs.modes.begin(), rhs.modes.end(), std::inserter(modes, modes.begin()));
 
-		nr_accesses_from_different_locations += rhs.nr_accesses_from_different_locations;
-
-		for (const auto& [location, rhs_offsets] : rhs.requested_offset_per_location) {
-			cout << "Rhs offsets:";
-			for(auto &offset_rhs : rhs_offsets)
-				cout << offset_rhs << ",";
-			cout << std::endl;
-			requested_offset_per_location[location].insert(requested_offset_per_location[location].end(), rhs_offsets.begin(), rhs_offsets.end());
-
-			cout << "Own offsets:";
-			for(auto &offset_own : requested_offset_per_location[location])
-				cout << offset_own << ",";
-			cout << std::endl;
-		}
+        std::copy(rhs.locations.begin(), rhs.locations.end(), std::inserter(locations, locations.begin()));
 		// TODO: Size/Timing stats are collected elsewhere (`bytes_read`,`bytes_write`,`time_spent_in_ticks`)
 	}
 
@@ -154,36 +144,18 @@ struct FileInfo {
 	std::uint64_t		  time_spent_in_ticks=0;
 
 	// === Access Patterns (NEXT: TODO)
-	/* Whether file-access is exclusive ("E") or shared ("S") */
-	std::uint64_t 		  nr_accesses_from_different_locations = 0;
-	/* Whether file-access pattern is contiguous or strided or random */
-	std::string 		  contiguous_or_strided_or_random;
-
-	/* Just store IO-Handle to avoid copying over every thing into `Fileinfo` (especially offset-per-location Hashmap) */
-	mutable std::map<OTF2_LocationRef, std::vector<uint64_t>> requested_offset_per_location;
-	// TODO: time spent for meta-ops
-
-	/** @brief Returns file access pattern to this file per location
-	 * @returns "contiguous"|"random"|"strided"
+	/* @brief Store list of locations that accessed this file
+	 * - implicitly determines whether file-access is exclusive ("E") or shared ("S") (just check whether .size==1?)
 	 */
-	std::unordered_map<AccessPatternTypeString, uint64_t> get_nr_locations_per_file_access_pattern() const {
-		// TODO: NEXT
-		std::unordered_map<OTF2_LocationRef, AccessPatternTypeString> access_pattern_per_location;
-		for (const auto& [location, offsets] : requested_offset_per_location) {
-			cout << "!Offsets:";
-			for(auto& offset: offsets)
-				cout << offset << ",";
-			cout << std::endl;
-			access_pattern_per_location[location] = access_pattern::get_access_pattern_from_offsets(offsets);
-		}
+	std::unordered_set<OTF2_LocationRef> locations;
 
-		std::unordered_map<AccessPatternTypeString, uint64_t> nr_locations_per_file_access_pattern;
-		for (const auto& [location, access_pattern] : access_pattern_per_location) {
-			++nr_locations_per_file_access_pattern[access_pattern];  // count each occurrence
-		}
+	/** How many ticks have been spent in each access pattern */
+	std::map<AccessPattern, uint64_t> ticks_spent_per_access_pattern{};
+	/** How many bytes have been worked upon per access pattern */
+	std::map<AccessPattern, uint64_t> iosize_per_access_pattern{};
 
-		return nr_locations_per_file_access_pattern;
-	}
+
+	// TODO: time spent for meta-ops
 
     template <typename Writer>
     void WriteFileInfo(Writer& w) const {
@@ -218,16 +190,21 @@ struct FileInfo {
 		w.Uint64(time_spent_in_ticks);
 
 		w.Key("Nr accesses from different locations");
-		w.Uint64(nr_accesses_from_different_locations);
+		w.Uint64(locations.size());
 
 		// store which access patterns have been used for accessin the files (both how many locations accessed file by this access pattern & % of time of accessing file in this pattern
-		w.Key("Access Patterns");
-		auto nr_locations_per_file_access_patterns = this->get_nr_locations_per_file_access_pattern();
-		// w.String(nr_locations_per_file_access_patterns.c_str());
+		w.Key("Ticks spent per Access Pattern");
 		w.StartObject();
-		for(auto& [access_pattern, nr_locations] : nr_locations_per_file_access_patterns) {
-			w.Key(access_pattern.c_str());
-			w.Uint64(nr_locations);
+		for(auto& [access_pattern, ticks_spent] : ticks_spent_per_access_pattern) {
+			w.Key(access_pattern_to_string(access_pattern));
+			w.Uint64(ticks_spent);
+		}
+		w.EndObject();
+		w.Key("I/O sizes per Access Pattern");
+		w.StartObject();
+		for(auto& [access_pattern, io_size] : iosize_per_access_pattern) {
+			w.Key(access_pattern_to_string(access_pattern));
+			w.Uint64(io_size);
 		}
 		w.EndObject();
 
@@ -235,7 +212,9 @@ struct FileInfo {
     }
 };
 
-/* TODO: NEXT */
+/** @brief Stores stats per region for output
+ * TODO: NEXT
+ * */
 struct RegionInfo {
     RegionInfo() {}
 	/* Construct Region info given io_handle-id (from Definitions) */
@@ -244,7 +223,7 @@ struct RegionInfo {
         if (!self)
             return;
         const IoHandle* parent = defs.iohandles.get(self->parent);
-        region_name= self->name;
+        region_name= self->file_handle->file_name;
         paradigm.insert(defs.io_paradigms.get(self->io_paradigm)->name);
         modes = self->modes;
     }
@@ -547,34 +526,37 @@ bool CreateJSON(AllData& alldata) {
         profile.io_ops_by_paradigm[paradigm_name].entries[meta_time] += io_data.nontransfer_time;
     }
 
-    for (auto file_entry : alldata.definitions.iohandles.get_all()) {
-        auto file_handle = file_entry.second;
-		uint64_t file_ref = file_entry.first;
-        profile.file_data[file_handle.name] += FileInfo(alldata.definitions, file_ref);
-    }
-
 	/* 2) Store stats per file */
-	/* Store I/O size and time statistics also per file */
-	for(auto file_io_entry: alldata.io_data_per_file) {
-		auto io_handle = alldata.definitions.iohandles.get(file_io_entry.first);
-		auto io_data = file_io_entry.second;
-		auto file_name = io_handle->name;
+    for (auto& [file_name, file]: alldata.definitions.filehandles) {
+		for (auto& ioh_id : file->io_handles) {
+			auto ioh = alldata.definitions.iohandles.get(ioh_id);
+			// auto file_name = ioh->file_handle->file_name;
+			profile.file_data[file_name] += FileInfo(alldata.definitions, ioh_id);
 
-		uint64_t bytes_read = 0, bytes_write = 0;
-		if(io_data.mode=="R") {
-			bytes_read = io_data.num_bytes;
-			bytes_write = 0;
-		} else if(io_data.mode=="W") {
-			bytes_read = 0;
-			bytes_write = io_data.num_bytes;
-		} else {
-			cout << "[WARNING] Invalid io-access-mode:" << io_data.mode << ", Nr bytes worked on are:" << io_data.num_bytes << std::endl;
+			auto io_data = ioh->io_data_stats;
+			uint64_t bytes_read = 0, bytes_write = 0;
+			if(io_data.mode=="R") {
+				bytes_read = io_data.num_bytes;
+				bytes_write = 0;
+			} else if(io_data.mode=="W") {
+				bytes_read = 0;
+				bytes_write = io_data.num_bytes;
+			} else if (io_data.num_bytes > 0) {
+				cout << "[WARNING] Invalid io-access-mode:" << io_data.mode << ", Nr bytes worked on are:" << io_data.num_bytes << std::endl;
+			}
+			// profile.file_data[file_name].filename = file_name;
+			profile.file_data[file_name].bytes_write += bytes_write;
+			profile.file_data[file_name].bytes_read += bytes_read;
+			profile.file_data[file_name].time_spent_in_ticks += io_data.transfer_time;
+			profile.file_data[file_name].time_spent_in_ticks += io_data.nontransfer_time; // TODO: output `nontransfer_time` separately as metadata-ops-time?
+
+			// get local access pattern
+			auto access_pattern = ioh->get_access_pattern();
+			profile.file_data[file_name].ticks_spent_per_access_pattern[access_pattern]
+				+= io_data.transfer_time;
+			profile.file_data[file_name].iosize_per_access_pattern[access_pattern]
+				+= bytes_read + bytes_write; // one of those is =0
 		}
-		// profile.file_data[file_name].filename = file_name;
-		profile.file_data[file_name].bytes_write += bytes_write;
-		profile.file_data[file_name].bytes_read += bytes_read;
-		profile.file_data[file_name].time_spent_in_ticks += io_data.transfer_time;
-		profile.file_data[file_name].time_spent_in_ticks += io_data.nontransfer_time; // TODO: output `nontransfer_time` separately?
 	}
 
 	/* 3) Store stats per location */
@@ -593,7 +575,7 @@ bool CreateJSON(AllData& alldata) {
 		} else if(io_data.mode=="W") {
 			bytes_read = 0;
 			bytes_write = io_data.num_bytes;
-		} else {
+		} else if (io_data.num_bytes > 0) {
 			cout << "[WARNING] Invalid io-access-mode:" << io_data.mode << ", Nr bytes worked on are:" << io_data.num_bytes << std::endl;
 		}
 

@@ -300,7 +300,7 @@ int OTFReader::handle_counter(void *fha, uint64_t time, uint32_t process, uint32
 
     return OTF_RETURN_OK;
 }
-/*TODO nicht verwendet
+/*TODO nicht verwendet*/
 int OTFReader::handle_rma_put(void *fha, uint64_t time, uint32_t process, uint32_t origin,
                               uint32_t target, uint32_t communicator, uint32_t tag, uint64_t bytes,
                               uint32_t source, OTF_KeyValueList *list) {
@@ -515,7 +515,7 @@ bool OTFReader::readEvents(AllData &alldata) {
     //    OTF_HandlerArray_setHandler(handlers, (OTF_FunctionPointer *)handle_end_collop,
     //                                OTF_ENDCOLLOP_RECORD);
     OTF_HandlerArray_setHandler(handlers, (OTF_FunctionPointer *)handle_collop, OTF_COLLOP_RECORD);
-    /*TODO nicht verwendet
+    /*TODO nicht verwendet*/
     //OTF_HandlerArray_setHandler(handlers, (OTF_FunctionPointer *)handle_rma_put, OTF_RMAPUT_RECORD); TODO nicht
     verwendet
     //OTF_HandlerArray_setHandler(handlers, (OTF_FunctionPointer *)handle_rma_get, OTF_RMAGET_RECORD); TODO nicht

@@ -16,11 +16,11 @@ class OTFReader : public TraceReader {
 
     ~OTFReader() { close(); }
 
-    void close();
-    bool initialize(AllData& alldata);
-    bool readDefinitions(AllData& alldata);
-    bool readEvents(AllData& alldata);
-    bool readStatistics(AllData& alldata);
+    void close() override;
+    bool initialize(AllData& alldata) override;
+    bool readDefinitions(AllData& alldata) override;
+    bool readEvents(AllData& alldata) override;
+    bool readStatistics(AllData& alldata) override;
 
    private:
     OTF_FileManager* _manager = nullptr;
@@ -41,10 +41,9 @@ class OTFReader : public TraceReader {
      *  @return             OTF_RETURN_ABORT  for aborting the reading process immediately
      *                      OTF_RETURN_OK     for continue reading
      */
-    /* TODO nicht verwendet
+    // TODO nicht verwendet
     static int handle_def_creator(void* userData, uint32_t stream, const char* creator,
                                   OTF_KeyValueList* list);
-    */
 
     /**
      * Callback function on the trace´s otf-version.
@@ -61,10 +60,9 @@ class OTFReader : public TraceReader {
      *  @return             OTF_RETURN_ABORT  for aborting the reading process immediately
      *                      OTF_RETURN_OK     for continue reading
      */
-    /* TODO nicht verwendet
+    // TODO nicht verwendet
     static int handle_def_version(void* userData, uint32_t stream, uint8_t major, uint8_t minor,
                                   uint8_t sub, const char* string, OTF_KeyValueList* list);
-    */
 
     /** @brief Callback function for a comment record.
      *
@@ -77,10 +75,10 @@ class OTFReader : public TraceReader {
      *  @return             OTF_RETURN_ABORT  for aborting the reading process immediately
      *                      OTF_RETURN_OK     for continue reading
      */
-    /* TODO nicht verwendet
+    // TODO nicht verwendet
     static int handle_def_comment(void* userData, uint32_t stream, const char* comment,
                                   OTF_KeyValueList* list);
-    */
+
     /** @brief Callback function for a timer resolution record.
      *
      *  @param userData         Pointer to user data.
@@ -126,11 +124,10 @@ class OTFReader : public TraceReader {
      *  @return                 OTF_RETURN_ABORT  for aborting the reading process immediately
      *                          OTF_RETURN_OK     for continue reading
      */
-    /* TODO nicht verwendet
+    // TODO nicht verwendet
     static int handle_def_processgroup(void* userData, uint32_t stream, uint32_t procGroup,
                                        const char* name, uint32_t numberOfProcs,
                                        const uint32_t* procs, OTF_KeyValueList* list);
-    */
 
     /** @brief Callback function for a function group definition record.
      *
@@ -222,11 +219,11 @@ class OTFReader : public TraceReader {
      *  @return                     OTF_RETURN_ABORT  for aborting the reading process immediately
      *                              OTF_RETURN_OK     for continue reading
      */
-    /* TODO nicht verwendet
+    // TODO nicht verwendet
     static int handle_def_keyvalue(void* userData, uint32_t stream, uint32_t key, OTF_Type type,
                                    const char* name, const char* description,
                                    OTF_KeyValueList* list);
-    */
+
     /** @brief Callback function for a function entry event.
      *
      *  @param userData             Pointer to user data.
@@ -364,12 +361,12 @@ class OTFReader : public TraceReader {
      *  @return                     OTF_RETURN_ABORT  for aborting the reading process immediately
      *                              OTF_RETURN_OK     for continue reading
      */
-    /* TODO nicht verwendet
+    // TODO nicht verwendet
     static int handle_begin_collop(void* userData, uint64_t time, uint32_t process, uint32_t collOp,
                                    uint64_t matchingId, uint32_t procGroup, uint32_t rootProc,
                                    uint64_t sent, uint64_t received, uint32_t scltoken,
                                    OTF_KeyValueList* list);
-*/
+
     /** @brief Provides an end collective operation member event.
      *
      *  @param userData             Pointer to user data.
@@ -383,10 +380,9 @@ class OTFReader : public TraceReader {
      *  @return                     OTF_RETURN_ABORT  for aborting the reading process immediately
      *                              OTF_RETURN_OK     for continue reading
      */
-    /* TODO nicht verwendet
+    // TODO nicht verwendet
     static int handle_end_collop(void* userData, uint64_t time, uint32_t process,
                                  uint64_t matchingId, OTF_KeyValueList* list);
-*/
 
     /** @brief Callback function for summarized information for a given function.
      *
@@ -404,11 +400,10 @@ class OTFReader : public TraceReader {
      *  @return             OTF_RETURN_ABORT  for aborting the reading process immediately
      *                      OTF_RETURN_OK     for continue reading
      */
-    /* TODO nicht verwendet
+    // TODO nicht verwendet
     static int handle_function_summary(void* userData, uint64_t time, uint32_t function,
                                        uint32_t process, uint64_t invocations, uint64_t exclTime,
                                        uint64_t inclTime, OTF_KeyValueList* list);
-    */
 
     /**
      * Provides summarized information for a given message type.
@@ -431,13 +426,12 @@ class OTFReader : public TraceReader {
      *  @return               OTF_RETURN_ABORT  for aborting the reading process immediately
      *                        OTF_RETURN_OK     for continue reading
      */
-    /* TODO nicht verwendet
+    // TODO nicht verwendet
     static int handle_message_summary(void* userData, uint64_t time, uint32_t process,
                                       uint32_t peer, uint32_t comm, uint32_t type,
                                       uint64_t sentNumber, uint64_t receivedNumber,
                                       uint64_t sentBytes, uint64_t receivedBytes,
                                       OTF_KeyValueList* list);
-    */
 
     /**
      * Provides summarized information for collective operations.
@@ -458,12 +452,11 @@ class OTFReader : public TraceReader {
      *  @return               OTF_RETURN_ABORT  for aborting the reading process immediately
      *                        OTF_RETURN_OK     for continue reading
      */
-    /* TODO nicht verwendet
+    // TODO nicht verwendet
     static int handle_collop_summary(void* userData, uint64_t time, uint32_t process, uint32_t comm,
                                      uint32_t collective, uint64_t sentNumber,
                                      uint64_t receivedNumber, uint64_t sentBytes,
                                      uint64_t receivedBytes, OTF_KeyValueList* list);
-    */
 
     /** @brief Callback function for records which cannot be read.
      *
@@ -482,56 +475,51 @@ class OTFReader : public TraceReader {
      *  @return Returns OTF_RETURN_ABORT for aborting the reading process immediately,
      *          OTF_RETURN_OK for continue reading.
      */
-    /* TODO nicht verwendet
-static int handleUnknownRecord(void* userData, uint64_t time, uint32_t process,
+    // TODO nicht verwendet
+	static int handleUnknownRecord(void* userData, uint64_t time, uint32_t process,
                                const char* record);
-*/
 
     /** @brief Callback function for rma put records.
      *
-     *  @param userData             Pointer to user data.
      *  @param time                 Time when summary was computed.
      *  @param process              Process identifier i.e. collective member.
      *  @param origin               Initiating process / thread
      *  @param target               Targetedd process / thread
      *  @param communicator         Communicator identifier to match put start with it's end
-     * (together with tag)
-     *  @tag                        Tag to match put start with it's end (together with
-     * communicator).
-     *  @bytes                      Amount of bytes put
-     *  @source                     Explicit source code location or 0.
+     * 								(together with tag)
+     *  @param tag                  Tag to match put start with it's end (together with
+     * 								communicator).
+     *  @param bytes                Amount of bytes put
+     *  @param source               Explicit source code location or 0.
      *
      *  @return                     OTF_RETURN_ABORT  for aborting the reading process immediately
      *                              OTF_RETURN_OK     for continue reading
      */
-    /* TODO nicht verwendet
+    // TODO nicht verwendet
     static int handle_rma_put(void* fha, uint64_t time, uint32_t process, uint32_t origin,
                               uint32_t target, uint32_t communicator, uint32_t tag, uint64_t bytes,
                               uint32_t source, OTF_KeyValueList* list);
-    */
 
     /** @brief Callback function for rma get records.
      *
-     *  @param userData             Pointer to user data.
      *  @param time                 Time when summary was computed.
      *  @param process              Process identifier i.e. collective member.
      *  @param origin               Initiating process / thread
      *  @param target               Targetedd process / thread
      *  @param communicator         Communicator identifier to match get start with it's end
      * (together with tag)
-     *  @tag                        Tag to match get start with it's end (together with
+     *  @param tag                        Tag to match get start with it's end (together with
      * communicator).
-     *  @bytes                      Amount of bytes get
-     *  @source                     Explicit source code location or 0.
+     *  @param bytes                      Amount of bytes get
+     *  @param source                     Explicit source code location or 0.
      *
      *  @return                     OTF_RETURN_ABORT  for aborting the reading process immediately
      *                              OTF_RETURN_OK     for continue reading
      */
-    /* TODO nicht verwendet
+    // TODO nicht verwendet
     static int handle_rma_get(void* fha, uint64_t time, uint32_t process, uint32_t origin,
                               uint32_t target, uint32_t communicator, uint32_t tag, uint64_t bytes,
                               uint32_t source, OTF_KeyValueList* list);
-    */
 
     /*
      * MISSING CALLBACKS:

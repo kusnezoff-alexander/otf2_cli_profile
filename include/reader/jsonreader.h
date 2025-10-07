@@ -10,12 +10,12 @@ public:
 
     ~JsonReader() { close();}
 
-    bool initialize(AllData& alldata);
-    void close();
+    bool initialize(AllData& alldata) override;
+    void close() override;
 
-    bool readDefinitions(AllData& alldata);
-    bool readEvents(AllData& alldata);
-    bool readStatistics(AllData& alldata);
+    bool readDefinitions(AllData& alldata) override;
+    bool readEvents(AllData& alldata) override;
+    bool readStatistics(AllData& alldata) override;
     bool readSystemTree(AllData& alldata);
 
 private:

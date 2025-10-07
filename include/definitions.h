@@ -4,7 +4,10 @@
 */
 
 #pragma once
+#include <algorithm>
 #include <cstdint>
+#include <optional>
+#include "access_pattern_detection.h"
 #include "otf2/OTF2_GeneralDefinitions.h"
 #ifndef DEFINITIONS_H
 #define DEFINITIONS_H
@@ -18,6 +21,8 @@
 #include <vector>
 
 #include "main_structs.h"
+
+using namespace access_pattern_detection;
 
 namespace definitions {
 
@@ -386,23 +391,113 @@ class SystemIterator {
     std::shared_ptr<SystemNode_t> root_ptr;
 };
 
-/* Represent a statistics associated with a file (?) */
+struct IoHandle; // Forward Declaration
+
+/** @brief Represents a file, needed to know file-size (eg if offsets are given relative to fsize)
+ *	@note Note the difference to @ref IoHandle which references an <u>open</u> file in a process/location
+ *	@note A file is not actually a definition in OTF, but implicitly referenced behind an IoHandle
+ *
+ *	@ref FileInfo = struct holding statistics output in json
+ */
+struct File
+{
+    std::string file_name;
+	/** Synchronize updates to `fsize` (which is affected by all writing locations
+	 *  TODO: find different solution to make it work with MPI-parallel run
+	 * */
+	mutable std::unique_ptr<std::mutex> fsize_mutex;
+	/** Track `fsize` to account for file-size-relative offset
+	 * @note The file-size is relative to the file-size which the file had BEFORE the traced program
+	 * was run (since we do not know how large the file actually was before and thus during the run)
+	 */
+	mutable uint64_t fsize = 0;
+
+	/** All IoHandles that have been used to to perform I/O on this file
+	 * - retrieve actual @ref IoHandle using @ref AllData definitions->iohandles
+	 * @note ALl IoHandles are collected in @ref OTF2Reader::handle_def_io_handle
+	 * */
+	std::vector<OTF2_IoHandleRef> io_handles;
+
+	File(std::string file_name): file_name(file_name), fsize_mutex(std::make_unique<std::mutex>()),
+		fsize(0)
+	{};
+
+	/** Updates file size to new value by performing required synchronization
+	 *
+	 *	TODO: synchronize MPI-parallel runs
+	 */
+	inline void update_file_size(uint64_t new_fsize)
+	{
+		fsize_mutex->lock();
+		fsize = new_fsize;
+		fsize_mutex->unlock();
+	}
+};
+
+using Fpos = uint64_t;
+/** Represent a statistics associated with a file descriptor (=open file per location)
+ *
+ * @note For Stats per IoHandle (eg `transfer_time`=time actually spent doing I/O on this IoHandle)
+ * see `&(alldata->io_data_per_io_handle[handle])`
+ * TODO: associate `IoData` directly with IoHandle
+ */
 struct IoHandle {
-    std::string name;
+	/** Statistics about I/O performed on this IoHandle
+	 * 	- filled in @ref OTF2Reader::io_operation_complete_callback
+	 * */
+	mutable IoData io_data_stats;
+	/** Location that created this IoHandle
+	 * @note This is only set once the I/O-Handle is actually created (in the trace)
+	 */
+	mutable std::optional<OTF2_LocationRef> location = std::nullopt;
+	/** File which is opened by IoHandle */
+	std::shared_ptr<File> file_handle;
+	/** the I/O paradigm used on this IoHandle (passed when creating the IoHandle) / opening the file */
     uint32_t    io_paradigm;
-    uint64_t    file;
-    uint64_t    parent;
+	/** TODO: what is this? Remove this? */
+    OTF2_IoFileRef    	file;
+	OTF2_IoHandleRef	self;
+    OTF2_IoHandleRef    parent;
     // Defined by events, so we need to allow changes post-handle-definition
     // Ugly but that's the world we live in
     mutable std::set<std::string> modes;
-	// This is used to determine whether the last
-	// TODO: verify this approach is valid (i.e. that no race condition exists)
-	// TODO: make `std::map<LocationId, std::string>` since several processes might open same file ?!`
-	mutable std::string last_io_mode;
-	/* Offsets requested per location and IO-Handle, used to determine file access patterns per file
-	 * @note Set in @ref{OTF2Reader::io_operation_begin_callback}
+	/** This is used to determine whether I/O-Op was a read or write (to append `numBytes` to r/w stats
+	* accordingly) based on the `matchingId` passed to `io_operation_begin()`&`io_opertion_complete()`
+	*/
+	mutable std::map<uint64_t, std::string> used_io_mode;
+
+	/* @brief List of I/O Accesses (timestamp of I/O completion,file position,I/O size))
+	 * @note Set in @ref OTF2Reader::io_operation_begin_callback
+	 *
+	 * @note fpos is relative to the `fsize` the  corresponding File had BEFORE the traced program was run
+	 * (since we can't know whether there was already sth written in that file from the trace)
 	 * */
-	mutable std::map<OTF2_LocationRef, std::vector<uint64_t>> requested_offset_per_location;
+	mutable std::vector<std::pair<OTF2_TimeStamp, std::pair<Fpos,size_t>>> io_accesses;
+
+	/** Track current `fpos` into file, determines position at which I/O is being performed
+	 * @note `fpos` could be different from the actual fpos during the run (since the original fsize before the program
+	 * executed is not given). But since our analysis works on relative offsets anyways, this shouldn't matter
+	 * */
+	mutable uint64_t fpos;
+
+	IoHandle() = default;
+
+	/** @note This Constructor is called during @ref OTF2Reader::handle_def_io_handle */
+	IoHandle(OTF2_IoHandleRef self, std::shared_ptr<File> file_handle, uint32_t io_paradigm, uint64_t file, uint64_t parent)
+		: self(self), file_handle(file_handle), io_paradigm(io_paradigm), file(file), parent(parent),
+		  io_data_stats(IoData(self))
+	{}
+
+	/** Local Access Patterns are computed per IoHandle
+	 * since the assumption is that local access patterns don't stretch btw opening&closing a file
+	 */
+	access_pattern_detection::AccessPattern get_access_pattern() const{
+
+		std::vector<std::pair<Fpos,size_t>> io_accesses_without_timestamps;
+		std::ranges::transform(io_accesses, std::back_inserter(io_accesses_without_timestamps),
+							   [](auto const& p) { return p.second; });
+		return access_pattern_detection::detect_local_access_pattern(io_accesses_without_timestamps);
+	};
 };
 
 /**
@@ -411,17 +506,22 @@ struct IoHandle {
  * @note Have to be accessible globally !
  */
 struct Definitions {
-    DefinitionType<uint64_t, Region>        regions;
-    DefinitionType<uint64_t, Metric>        metrics;
-    DefinitionType<uint64_t, Metric_Class>  metric_classes;
-	DefinitionType<OTF2_AttributeRef, Attribute> attributes;
-    DefinitionType<paradigm_id_t, Paradigm> paradigms;
-    DefinitionType<paradigm_id_t, Paradigm> io_paradigms;
+    DefinitionType<uint64_t, Region>        			regions;
+    DefinitionType<uint64_t, Metric>        			metrics;
+    DefinitionType<uint64_t, Metric_Class>  			metric_classes;
+	DefinitionType<OTF2_AttributeRef, Attribute> 		attributes;
+    DefinitionType<paradigm_id_t, Paradigm> 			paradigms;
+    DefinitionType<paradigm_id_t, Paradigm> 			io_paradigms;
 	/* TODO: What does the uint64_t here refer to?? Some internal indexing or OTf2-Refs?? */
-    DefinitionType<uint64_t, IoHandle>      iohandles;
-    DefinitionType<uint64_t, Group>         groups;
-    SystemTree                              system_tree{};
+	/// These are crated inside @ref OTF2Reader::handle_def_io_handle
+    DefinitionType<OTF2_IoHandleRef, IoHandle>      	iohandles;
+	/// Maps file-name (full-path) to corresponding FileHandle
+	/// These are crated inside @ref OTF2Reader::handle_def_io_handle
+	std::unordered_map<std::string, std::shared_ptr<File>>	filehandles;
+    DefinitionType<uint64_t, Group>         			groups;
+    SystemTree                              			system_tree{};
 };
+
 }  // namespace definitions
 
 struct meta_data {

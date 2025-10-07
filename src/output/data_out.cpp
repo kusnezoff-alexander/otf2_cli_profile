@@ -259,7 +259,7 @@ void display_definitions(AllData alldata, Writer& writer){
                     writer.Key(std::to_string(iohandle.first).c_str());
                     writer.StartObject();
                         writer.Key("name");
-                        writer.String(iohandle.second.name.c_str());
+                        writer.String(iohandle.second.file_handle->file_name.c_str());
                         writer.Key("io_paradigm");
                         writer.Uint(iohandle.second.io_paradigm);
                         writer.Key("file");

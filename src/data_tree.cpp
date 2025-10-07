@@ -12,7 +12,7 @@ using namespace std;
 data_tree::data_tree() {}
 
 // generating a tree out of a mapping sent with MPI - ReduceData - (has no data inside a tree node)
-data_tree::data_tree(map<uint64_t, tuple<uint64_t, uint64_t, shared_ptr<tree_node>>>& mapping) {
+data_tree::data_tree(std::map<uint64_t, std::tuple<uint64_t, uint64_t, std::shared_ptr<tree_node>>>& mapping) {
     shared_ptr<tree_node> tmp_node;
 
     for (auto it = mapping.begin(); it != mapping.end(); it++) {
@@ -28,7 +28,7 @@ data_tree::data_tree(map<uint64_t, tuple<uint64_t, uint64_t, shared_ptr<tree_nod
 }
 
 // add a node without data
-shared_ptr<tree_node> data_tree::insert_node(uint64_t function_id, shared_ptr<tree_node> parent) {
+shared_ptr<tree_node> data_tree::insert_node(uint64_t function_id, std::shared_ptr<tree_node> parent) {
     if (parent == nullptr) {
         shared_ptr<tree_node> tmp = std::make_shared<tree_node>(function_id, parent);
 
@@ -78,7 +78,7 @@ tree_node* data_tree::insert_node(uint64_t function_id, tree_node* parent) {
 }
 
 // copy a node into the tree - with it's data
-void data_tree::insert_node(shared_ptr<tree_node> aNode) {
+void data_tree::insert_node(std::shared_ptr<tree_node> aNode) {
     if (aNode->parent == NULL) {
         root_nodes.insert(make_pair(aNode->function_id, aNode));
     } else {
@@ -106,7 +106,7 @@ void data_tree::merge_tree(data_tree& rhs_tree) {
 
 // merge two nodes -- copying rhs_node's content into lhs's
 // should only be used if one knows that the data inside a node is unique (location wise)
-void data_tree::merge_node(shared_ptr<tree_node>& lhs_node, shared_ptr<tree_node>& rhs_node) {
+void data_tree::merge_node(std::shared_ptr<tree_node>& lhs_node, std::shared_ptr<tree_node>& rhs_node) {
     for (auto it : rhs_node->node_data) {
         lhs_node->node_data.insert(it);
     }
@@ -127,7 +127,7 @@ void data_tree::merge_node(shared_ptr<tree_node>& lhs_node, shared_ptr<tree_node
 }
 
 // TODO zu geringe funktionalität? -> benötigen wir es gesondert?
-void data_tree::insert_sub_tree(shared_ptr<tree_node>& parent, shared_ptr<tree_node>& n_node) {
+void data_tree::insert_sub_tree(std::shared_ptr<tree_node>& parent, std::shared_ptr<tree_node>& n_node) {
     n_node->parent = parent.get();  // shared_ptr<tree_node>(parent);
 
     parent->children.insert(make_pair(n_node->function_id, n_node));
@@ -141,11 +141,11 @@ void data_tree::insert_sub_tree(shared_ptr<tree_node>& parent, shared_ptr<tree_n
 // iterate through the tree, generate a mapping and fill the given data deques
 // for communication via MPI
 // only getting called by serialize_data - not intended for usage on it's own
-void getting_serial(map<uint64_t, pair<uint64_t, uint64_t>>&                 mapping,
-                    deque<tuple<uint64_t, uint64_t, FunctionData*>>&         f_data,
-                    deque<tuple<uint64_t, uint64_t, MessageData*>>&          m_data,
-                    deque<tuple<uint64_t, uint64_t, CollopData*>>&           c_data,
-                    deque<tuple<uint64_t, uint64_t, uint64_t, MetricData*>>& met_data, shared_ptr<tree_node>& aNode,
+void getting_serial(std::map<uint64_t, std::pair<uint64_t, uint64_t>>& mapping,
+                    std::deque<tuple<uint64_t, uint64_t, FunctionData*>>& f_data,
+                    std::deque<tuple<uint64_t, uint64_t, MessageData*>>& m_data,
+                    std::deque<tuple<uint64_t, uint64_t, CollopData*>>& c_data,
+                    std::deque<tuple<uint64_t, uint64_t, uint64_t, MetricData*>>& met_data, std::shared_ptr<tree_node>& aNode,
                     uint64_t& counter, stack<uint64_t>& node_stack) {
     if (!node_stack.empty()) {
         // insert as common node
@@ -185,11 +185,11 @@ void getting_serial(map<uint64_t, pair<uint64_t, uint64_t>>&                 map
 }
 
 // function to serialize data for the MPI communication
-void data_tree::serialize_data(map<uint64_t, pair<uint64_t, uint64_t>>&                 mapping,
-                               deque<tuple<uint64_t, uint64_t, FunctionData*>>&         f_data,
-                               deque<tuple<uint64_t, uint64_t, MessageData*>>&          m_data,
-                               deque<tuple<uint64_t, uint64_t, CollopData*>>&           c_data,
-                               deque<tuple<uint64_t, uint64_t, uint64_t, MetricData*>>& met_data) {
+void data_tree::serialize_data(std::map<uint64_t, std::pair<uint64_t, uint64_t>>&                 mapping,
+                               std::deque<tuple<uint64_t, uint64_t, FunctionData*>>&         f_data,
+                               std::deque<tuple<uint64_t, uint64_t, MessageData*>>&          m_data,
+                               std::deque<tuple<uint64_t, uint64_t, CollopData*>>&           c_data,
+                               std::deque<tuple<uint64_t, uint64_t, uint64_t, MetricData*>>& met_data) {
     stack<uint64_t> node_stack;
     uint64_t        counter = 0;  //<- gibt die node_id an die sonst nicht existiert, sie ist für das
                                   // mapping allerdings wichtig -> reduce-Schritt
@@ -224,7 +224,7 @@ tree_node::tree_node(const uint64_t _function_id, tree_node* _parent)
       has_p2p(false),
       has_collop(false) {}
 
-tree_node::tree_node(const uint64_t _function_id, const shared_ptr<tree_node>& _parent)
+tree_node::tree_node(const uint64_t _function_id, const std::shared_ptr<tree_node>& _parent)
     : function_id(_function_id),
       parent(_parent.get()),
       last_loc((uint64_t)-1),
@@ -232,7 +232,7 @@ tree_node::tree_node(const uint64_t _function_id, const shared_ptr<tree_node>& _
       has_p2p(false),
       has_collop(false) {}
 
-tree_node::tree_node(const uint64_t _function_id, const shared_ptr<tree_node>& _parent, const uint64_t process_num)
+tree_node::tree_node(const uint64_t _function_id, const std::shared_ptr<tree_node>& _parent, const uint64_t process_num)
     : function_id(_function_id),
       parent(_parent.get()),
       last_loc((uint64_t)-1),
