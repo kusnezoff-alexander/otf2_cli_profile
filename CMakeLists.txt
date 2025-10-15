@@ -39,28 +39,28 @@ option (USE_OTF2 "Use OTF2 library" ON)
 if (USE_OTF2)
 	find_package (OTF2)
 
-	# if(NOT OTF2_FOUND)
-	# 	message("Downloading OTF23.1 manually...")
-	#
-	# 	# Set where OTF2 should be built and installed
-	# 	set(OTF2_PREFIX ${CMAKE_BINARY_DIR}/otf2-install)
-	#
-	# 	ExternalProject_Add(OTF2
-	# 		URL https://perftools.pages.jsc.fz-juelich.de/cicd/otf2/tags/otf2-3.1/otf2-3.1.tar.gz
-	# 		PREFIX ${CMAKE_BINARY_DIR}/otf2
-	# 		CONFIGURE_COMMAND <SOURCE_DIR>/configure --prefix=${OTF2_PREFIX} # CXXFLAGS="-Wno-deprecated-enum-enum-conversion"
-	# 		BUILD_COMMAND make -j
-	# 		INSTALL_COMMAND make install
-	#
-	# 		# TODO: prevent rebuilt on every compilation (the below doesnt work..)
-	# 		# Set the directory where the file is downloaded and cached
-	# 	  	DOWNLOAD_DIR ${CMAKE_BINARY_DIR}/downloads
-	# 		# These prevent re-downloading if already built
-	# 	  	DOWNLOAD_NO_EXTRACT FALSE
-	# 	  	UPDATE_DISCONNECTED TRUE
-	# 		BUILD_ALWAYS OFF
-	# 	)
-	# endif()
+	if(NOT OTF2_FOUND)
+		message("Downloading OTF23.1 manually...")
+
+		# Set where OTF2 should be built and installed
+		set(OTF2_PREFIX ${CMAKE_BINARY_DIR}/otf2-install)
+
+		ExternalProject_Add(OTF2
+			URL https://perftools.pages.jsc.fz-juelich.de/cicd/otf2/tags/otf2-3.1/otf2-3.1.tar.gz
+			PREFIX ${CMAKE_BINARY_DIR}/otf2
+			CONFIGURE_COMMAND <SOURCE_DIR>/configure --prefix=${OTF2_PREFIX} # CXXFLAGS="-Wno-deprecated-enum-enum-conversion"
+			BUILD_COMMAND make -j
+			INSTALL_COMMAND make install
+
+			# TODO: prevent rebuilt on every compilation (the below doesnt work..)
+			# Set the directory where the file is downloaded and cached
+		  	DOWNLOAD_DIR ${CMAKE_BINARY_DIR}/downloads
+			# These prevent re-downloading if already built
+		  	DOWNLOAD_NO_EXTRACT FALSE
+		  	UPDATE_DISCONNECTED TRUE
+			BUILD_ALWAYS OFF
+		)
+	endif()
 
     set (HAVE_OTF2 OTF2_FOUND)
     set (VERSION_OTF2_MAJOR ${OTF2_VERSION_MAJOR})

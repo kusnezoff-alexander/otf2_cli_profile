@@ -639,7 +639,7 @@ OTF2_CallbackCode OTF2Reader::io_operation_begin_callback(OTF2_LocationRef locat
     auto* alldata              = static_cast<AllData*>(userData);
     auto* h                    = alldata->definitions.iohandles.get(handle);
 
-	assert(h->location == locationID); // in theory `IoHandle`s should be only accessed by the same location
+	assert(!h->location || h->location == locationID); // in theory `IoHandle`s should be only accessed by the same location
     if (!h)
         return OTF2_CALLBACK_ERROR;
     switch (mode) {
@@ -765,7 +765,7 @@ OTF2_CallbackCode OTF2Reader::io_seek_callback ( OTF2_LocationRef    location,
 		std::exit(EXIT_FAILURE);
 	}
 	// NOTE: do we care about `offsetRequest`?
-	std::cout << "Callback io_seek_callback:" << offsetResult << std::endl;
+	// std::cout << "Callback io_seek_callback:" << offsetResult << std::endl;
 	return OTF2_CALLBACK_SUCCESS;
 }
 
