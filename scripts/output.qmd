@@ -1,0 +1,251 @@
+---
+title: "I/O Summary of <>"
+execute:
+  echo: false
+---
+
+# General Overview
+
+```{ojs}
+// attached files need to be in same dir !
+results = FileAttachment("results.json").json({ typed: true })
+
+ticks_per_second = results.TimerResolution
+
+// Function to format axis labels
+function formatBytesAxis(bytes) {
+  if (bytes >= 1e15) return (bytes / 1e15).toFixed(2) + " PB";
+  if (bytes >= 1e12) return (bytes / 1e12).toFixed(2) + " TB";
+  if (bytes >= 1e9)  return (bytes / 1e9).toFixed(2) + " GB";
+  if (bytes >= 1e6)  return (bytes / 1e6).toFixed(2) + " MB";
+  if (bytes >= 1e3)  return (bytes / 1e3).toFixed(2) + " KB";
+  return bytes + " B";
+}
+
+function formatTimeAxis(seconds) {
+  if (seconds >= 3600) return (seconds / 3600).toFixed(2) + " h";
+  if (seconds >= 60)   return (seconds / 60).toFixed(2) + " min";
+  if (seconds >= 1)    return seconds.toFixed(2) + " s";
+  if (seconds >= 1e-3) return (seconds * 1e3).toFixed(2) + " ms";
+  if (seconds >= 1e-6) return (seconds * 1e6).toFixed(2) + " µs";
+  return (seconds * 1e9).toFixed(2) + " ns";
+}
+
+```
+
+## By paradigm
+
+```{ojs}
+
+// Extract IOOperations
+ioData = Object.entries(results.IOOperations).map(([paradigm, ops]) => ({
+	paradigm,
+	bytes: ops.Bytes,
+	meta: ops.MetaOperationTime / ticks_per_second,
+	transfer: ops.TransferOperationTime / ticks_per_second,
+	count: ops.Count
+}));
+
+// Create charts
+chartBytes = Plot.plot({
+	marks: [Plot.barY(ioData, {x: "paradigm", y: "bytes", fill: "paradigm"})],
+	y: {label: "Bytes", tickFormat: formatBytesAxis},
+	width: 400,
+	height: 300
+});
+
+chartTransfer = Plot.plot({
+	marginLeft: 70,
+	marks: [Plot.barY(ioData, {x: "paradigm", y: "transfer", fill: "paradigm"})],
+	y: {label: "IOOperationTime", tickFormat: formatTimeAxis},
+	width: 400,
+	height: 300
+});
+
+chartMeta = Plot.plot({
+	marginLeft: 70,
+	marks: [Plot.barY(ioData, {x: "paradigm", y: "meta", fill: "paradigm"})],
+	y: {label: "MetaOperationTime", tickFormat: formatTimeAxis},
+	width: 400,
+	height: 300
+});
+
+// Return horizontal container
+html`<div style="display:flex; gap:20px;">${chartBytes}${chartTransfer}${chartMeta}</div>`
+```
+
+## By Access Pattern
+
+### Local Access Pattern
+
+```{ojs}
+// Aggregate ticks and bytes per access pattern safely
+// Aggregate using reduce
+accessPatternData = results.Files.reduce((acc, file) => {
+	const ticks = file["Ticks spent per Access Pattern"] || {};
+	const ioSizes = file["I/O sizes per Access Pattern"] || {};
+
+	Object.entries(ticks).forEach(([pattern, val]) => {
+	if (!(pattern in acc)) acc[pattern] = {ticks: 0, bytes: 0};
+		acc[pattern].ticks += val;
+		acc[pattern].bytes += ioSizes[pattern] || 0;
+	});
+
+	return acc;
+}, {});
+
+// Convert to array for plotting
+accessPatternArray = Object.entries(accessPatternData).map(([pattern, val]) => ({
+	pattern,
+	ticks: val.ticks,
+	bytes: val.bytes
+}));
+
+// Strip prefix from pattern labels
+accessPatternArray.forEach(d => {
+	d.pattern = d.pattern.replace(/^AccessPattern::/, "");
+});
+
+accessPatternArray
+
+// // Assuming accessPatternArray is already computed
+// Plot.plot({
+// 	marks: [
+// 		// Bytes bars on left axis
+// 		Plot.barY(accessPatternArray, {x: "pattern", y: "bytes", fill: "bytes"}),
+//
+// 		// Ticks bars on right axis
+// 		// TODO: d => d.ticks / ticks_per_second
+// 		Plot.barY(accessPatternArray, {x: "pattern", y: "ticks", fill: "ticks", axis:"y2"})
+// 	],
+// 	x: {label: "Access Pattern"},
+// 	y: {label: "Size (Bytes)"},
+// 	y2: {label: "Time (s)", axis: "right"},
+// })
+```
+
+```{ojs}
+function dualAxisY(data, {y, ticks = 10, tickFormat, ...options} = {}) {
+  const [y1, y2] = d3.extent(Plot.valueof(data, y));
+  const scale = d3.scaleLinear().domain([y1, y2]);
+  return Plot.axisY(d3.ticks(y1, y2, ticks), {...options, y: scale, tickFormat: scale.tickFormat(ticks, tickFormat)});
+}
+
+// inspired by https://observablehq.com/@tophtucker/plot-dual-axis-line-chart
+leftColor = "#4e79a7"
+left = Object.entries(accessPatternData).map(([pattern, val]) => ({
+	pattern: pattern.replace(/^AccessPattern::/, ""),
+	ticks: val.ticks,
+}));
+rightColor = "#f28e2c"
+right = Object.entries(accessPatternData).map(([pattern, val]) => ({
+	pattern: pattern.replace(/^AccessPattern::/, ""),
+	bytes: val.bytes
+}));
+Plot.plot({
+  color: {legend: true},
+  marks: [
+    dualAxisY(left, {y: "ticks", anchor: "left", color: leftColor}),
+    dualAxisY(right, {y: "bytes", anchor: "right", color: rightColor}),
+	Plot.barY(left, Plot.normalizeY("extent", {x: "pattern", y: "ticks", dx: -20, insetLeft: 40, insetRight: 40, fill: leftColor})),
+	Plot.barY(right, Plot.normalizeY("extent", {x: "pattern", y: "bytes", dx: 20, insetLeft: 40, insetRight: 40, fill: rightColor}))
+  ]
+})
+
+```
+
+### Global Access Pattern
+
+TODO
+
+## Files
+
+```{ojs}
+// Helper Functions
+function commonPrefix(strings) {
+  if (!strings.length) return "";
+  let prefix = strings[0];
+  for (let str of strings.slice(1)) {
+    let i = 0;
+    while (i < prefix.length && prefix[i] === str[i]) i++;
+    prefix = prefix.slice(0, i);
+    if (!prefix) break;
+  }
+  return prefix;
+}
+
+function getBasePath(path) {
+  // Return everything before the last slash
+  const lastSlash = path.lastIndexOf("/");
+  return lastSlash !== -1 ? path.slice(0, lastSlash + 1) : "";
+}
+
+```
+
+Top 10 by read size:
+```{ojs}
+topReadFiles = results.Files
+  .filter(f => f["#Bytes read"] > 0) // Ignore entries with 0 read bytes
+  .sort((a, b) => b["#Bytes read"] - a["#Bytes read"]) // Sort descending
+  .slice(0, 10) // Top 10
+
+// filter common path prefix
+common_read = topReadFiles.length > 1
+  ? commonPrefix(topReadFiles.map(f => f.FileName))
+  : getBasePath(topReadFiles[0]?.FileName ?? "");
+
+Inputs.table(
+  topReadFiles.map(f => ({
+    FileName: f.FileName.replace(common_read, ""),
+    "#Bytes read": f["#Bytes read"],
+    "#Bytes write": f["#Bytes write"],
+    "Ticks spent": f["Ticks spent"]
+  }))
+)
+```
+
+Top 10 by write size:
+```{ojs}
+topWriteFiles = results.Files
+  .filter(f => f["#Bytes write"] > 0) // Ignore entries with 0 read bytes
+  .sort((a, b) => b["#Bytes write"] - a["#Bytes write"]) // Sort descending
+  .slice(0, 10) // Top 10
+
+// filter common path prefix
+common_write = topWriteFiles.length > 1
+  ? commonPrefix(topWriteFiles.map(f => f.FileName))
+  : getBasePath(topReadFiles[0]?.FileName ?? "");
+
+Inputs.table(
+  topWriteFiles.map(f => ({
+    FileName: f.FileName.replace(common_write, ""),
+    "#Bytes read": f["#Bytes read"],
+    "#Bytes write": f["#Bytes write"],
+    "Ticks spent": f["Ticks spent"]
+  }))
+)
+
+```
+
+Top 10 by I/O time:
+```{ojs}
+topIOFiles = results.Files
+  .filter(f => f["Ticks spent"] > 0) // Ignore entries with 0 read bytes
+  .sort((a, b) => b["Ticks spent"] - a["Ticks spent"]) // Sort descending
+  .slice(0, 10) // Top 10
+
+// filter common path prefix
+common_io = topIOFiles.length > 1
+  ? commonPrefix(topIOFiles.map(f => f.FileName))
+  : getBasePath(topReadFiles[0]?.FileName ?? "");
+
+Inputs.table(
+  topIOFiles.map(f => ({
+    FileName: f.FileName.replace(common_io, ""),
+    "#Bytes read": f["#Bytes read"],
+    "#Bytes write": f["#Bytes write"],
+    "Ticks spent": f["Ticks spent"]
+  }))
+)
+```
+
