@@ -1,0 +1,151 @@
+<!DOCTYPE html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>File I/O Progress Bars</title>
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<div class="legend" id="legend"></div>
+<div id="bars"></div>
+<div class="tooltip" id="tooltip"></div>
+
+<script>
+// Define AccessPattern colors
+const patternColors = {
+    "AccessPattern::Contiguous": "#90ee90", // light green
+    "AccessPattern::Strided": "#add8e6",    // light blue
+    "AccessPattern::Random": "#cccc00",     // yellow
+    "AccessPattern::ContiguousEquallySized": "#006400", // dark green
+    "AccessPattern::StridedEquallySized": "#00008b",    // dark blue
+    "AccessPattern::RandomEquallySized": "#b8860b",     // dark yellow
+    "AccessPattern::NONE": "#d3d3d3"        // light gray fallback
+};
+
+// Legend container
+const legendContainer = d3.select("#legend");
+
+// Group 1: Special items (Read, Write, Metadata)
+const specialItems = [
+  {label: "Read", class: "read"},
+  {label: "Write", class: "write"},
+  {label: "Metadata", class: "metadata"}
+];
+
+const specialGroup = legendContainer.append("div")
+    .attr("class", "legend-group");
+
+specialGroup.append("div")
+    .attr("class", "legend-group-title")
+    .text("Special Items");
+
+specialItems.forEach(item => {
+  const entry = specialGroup.append("div")
+      .attr("class", "legend-item");
+  entry.append("div")
+      .attr("class", `legend-box ${item.class}`);
+  entry.append("div")
+      .text(item.label);
+});
+
+// Group 2: Access patterns
+const patternGroup = legendContainer.append("div")
+    .attr("class", "legend-group");
+
+patternGroup.append("div")
+    .attr("class", "legend-group-title")
+    .text("Access Patterns");
+
+Object.entries(patternColors).forEach(([pattern, color]) => {
+  const entry = patternGroup.append("div")
+      .attr("class", "legend-item");
+  entry.append("div")
+      .attr("class", "legend-box")
+      .style("background-color", color)
+      .style("border", "1px solid black");
+  entry.append("div")
+      .text(pattern.replace("AccessPattern::", ""));
+});
+
+// Tooltip
+const tooltip = d3.select("#tooltip");
+
+// Load JSON data
+d3.json("data.json").then(function(data) {
+    const container = d3.select("#bars");
+
+    data.forEach(file => {
+        // File label
+        container.append("div")
+            .attr("class", "file-label")
+            .text(file.FileName);
+
+        // Total sizes for reads and writes
+        const totalRead = d3.sum(Object.values(file.read["I/O sizes per Access Pattern"]));
+        const totalWrite = d3.sum(Object.values(file.write["I/O sizes per Access Pattern"]));
+
+        // Create progress bar
+        const bar = container.append("div")
+            .attr("class", "progress-bar");
+
+		// Read segments
+		Object.entries(file.read["I/O sizes per Access Pattern"]).forEach(([pattern, size]) => {
+			if (size > 0) {
+				const ticks = file.read["Ticks spent per Access Pattern"][pattern] || 0;
+				const totalRead = file.read["#Bytes"] || 1; // avoid division by 0
+				const totalReadTicks = file.read["Ticks spent total"] || 1;
+
+				const sizePct = ((size / totalRead) * 100).toFixed(1);
+				const ticksPct = ((ticks / totalReadTicks) * 100).toFixed(1);
+
+				bar.append("div")
+					.attr("class", "segment read-pattern")
+					.style("width", (size / totalRead * 100) + "%")
+					.style("background-color", patternColors[pattern] || "#d3d3d3")
+					.on("mousemove", (event) => {
+						tooltip.style("opacity", 1)
+							.html(`Read<br>${pattern}<br>I/O size: ${size} (${sizePct}%)<br>Ticks: ${ticks} (${ticksPct}%)`)
+							.style("left", (event.pageX + 10) + "px")
+							.style("top", (event.pageY + 10) + "px");
+					})
+					.on("mouseleave", () => {
+						tooltip.style("opacity", 0);
+					});
+			}
+		});
+
+		// Write segments
+		Object.entries(file.write["I/O sizes per Access Pattern"]).forEach(([pattern, size]) => {
+			if (size > 0) {
+				const ticks = file.write["Ticks spent per Access Pattern"][pattern] || 0;
+				const totalWrite = file.write["#Bytes"] || 1;
+				const totalWriteTicks = file.write["Ticks spent total"] || 1;
+
+				const sizePct = ((size / totalWrite) * 100).toFixed(1);
+				const ticksPct = ((ticks / totalWriteTicks) * 100).toFixed(1);
+
+				bar.append("div")
+					.attr("class", "segment write-pattern")
+					.style("width", (size / totalWrite * 100) + "%")
+					.style("background-color", patternColors[pattern] || "#d3d3d3")
+					.on("mousemove", (event) => {
+						tooltip.style("opacity", 1)
+							.html(`Write<br>${pattern}<br>I/O size: ${size} (${sizePct}%)<br>Ticks: ${ticks} (${ticksPct}%)`)
+							.style("left", (event.pageX + 10) + "px")
+							.style("top", (event.pageY + 10) + "px");
+					})
+					.on("mouseleave", () => {
+						tooltip.style("opacity", 0);
+					});
+			}
+		});
+	});
+});
+</script>
+
+</body>
+</html>
+

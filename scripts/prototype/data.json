@@ -1,0 +1,198 @@
+[
+  {
+    "FileName": "file1.txt",
+    "IoParadigm": ["POSIX I/O"],
+    "AccessModes": "R",
+    "read": {
+      "#Bytes": 2490,
+      "Ticks spent total": 5950,
+      "Ticks spent per Access Pattern": {
+        "AccessPattern::NONE": 4500,
+        "AccessPattern::Strided": 1200,
+        "AccessPattern::Contiguous": 300,
+        "AccessPattern::Random": 50,
+        "AccessPattern::StridedEquallySized": 200,
+        "AccessPattern::ContiguousEquallySized": 800,
+        "AccessPattern::RandomEquallySized": 75
+      },
+      "I/O sizes per Access Pattern": {
+        "AccessPattern::NONE": 1200,
+        "AccessPattern::Strided": 600,
+        "AccessPattern::Contiguous": 150,
+        "AccessPattern::Random": 25,
+        "AccessPattern::StridedEquallySized": 100,
+        "AccessPattern::ContiguousEquallySized": 400,
+        "AccessPattern::RandomEquallySized": 15
+      }
+    },
+    "write": {
+      "#Bytes": 17,
+      "Ticks spent total": 65,
+      "Ticks spent per Access Pattern": {
+        "AccessPattern::NONE": 50,
+        "AccessPattern::Strided": 10,
+        "AccessPattern::Contiguous": 5,
+        "AccessPattern::Random": 0,
+        "AccessPattern::StridedEquallySized": 0,
+        "AccessPattern::ContiguousEquallySized": 0,
+        "AccessPattern::RandomEquallySized": 0
+      },
+      "I/O sizes per Access Pattern": {
+        "AccessPattern::NONE": 10,
+        "AccessPattern::Strided": 5,
+        "AccessPattern::Contiguous": 2,
+        "AccessPattern::Random": 0,
+        "AccessPattern::StridedEquallySized": 0,
+        "AccessPattern::ContiguousEquallySized": 0,
+        "AccessPattern::RandomEquallySized": 0
+      }
+    }
+  },
+  {
+    "FileName": "log.txt",
+    "IoParadigm": ["POSIX I/O"],
+    "AccessModes": "R",
+    "read": {
+      "#Bytes": 261,
+      "Ticks spent total": 7800,
+      "Ticks spent per Access Pattern": {
+        "AccessPattern::NONE": 6000,
+        "AccessPattern::Strided": 900,
+        "AccessPattern::Contiguous": 250,
+        "AccessPattern::Random": 30,
+        "AccessPattern::StridedEquallySized": 100,
+        "AccessPattern::ContiguousEquallySized": 450,
+        "AccessPattern::RandomEquallySized": 20
+      },
+      "I/O sizes per Access Pattern": {
+        "AccessPattern::NONE": 128,
+        "AccessPattern::Strided": 60,
+        "AccessPattern::Contiguous": 15,
+        "AccessPattern::Random": 2,
+        "AccessPattern::StridedEquallySized": 10,
+        "AccessPattern::ContiguousEquallySized": 45,
+        "AccessPattern::RandomEquallySized": 1
+      }
+    },
+    "write": {
+      "#Bytes": 7,
+      "Ticks spent total": 25,
+      "Ticks spent per Access Pattern": {
+        "AccessPattern::NONE": 20,
+        "AccessPattern::Strided": 5,
+        "AccessPattern::Contiguous": 0,
+        "AccessPattern::Random": 0,
+        "AccessPattern::StridedEquallySized": 0,
+        "AccessPattern::ContiguousEquallySized": 0,
+        "AccessPattern::RandomEquallySized": 0
+      },
+      "I/O sizes per Access Pattern": {
+        "AccessPattern::NONE": 5,
+        "AccessPattern::Strided": 2,
+        "AccessPattern::Contiguous": 0,
+        "AccessPattern::Random": 0,
+        "AccessPattern::StridedEquallySized": 0,
+        "AccessPattern::ContiguousEquallySized": 0,
+        "AccessPattern::RandomEquallySized": 0
+      }
+    }
+  },
+  {
+    "FileName": "file2.txt",
+    "IoParadigm": ["ISO C I/O", "POSIX I/O"],
+    "AccessModes": "W",
+    "read": {
+      "#Bytes": 2,
+      "Ticks spent total": 8,
+      "Ticks spent per Access Pattern": {
+        "AccessPattern::NONE": 5,
+        "AccessPattern::Strided": 2,
+        "AccessPattern::Contiguous": 1,
+        "AccessPattern::Random": 0,
+        "AccessPattern::StridedEquallySized": 0,
+        "AccessPattern::ContiguousEquallySized": 0,
+        "AccessPattern::RandomEquallySized": 0
+      },
+      "I/O sizes per Access Pattern": {
+        "AccessPattern::NONE": 1,
+        "AccessPattern::Strided": 1,
+        "AccessPattern::Contiguous": 0,
+        "AccessPattern::Random": 0,
+        "AccessPattern::StridedEquallySized": 0,
+        "AccessPattern::ContiguousEquallySized": 0,
+        "AccessPattern::RandomEquallySized": 0
+      }
+    },
+    "write": {
+      "#Bytes": 76,
+      "Ticks spent total": 5110,
+      "Ticks spent per Access Pattern": {
+        "AccessPattern::NONE": 0,
+        "AccessPattern::Strided": 200,
+        "AccessPattern::Contiguous": 150,
+        "AccessPattern::Random": 50,
+        "AccessPattern::StridedEquallySized": 300,
+        "AccessPattern::ContiguousEquallySized": 4460,
+        "AccessPattern::RandomEquallySized": 0
+      },
+      "I/O sizes per Access Pattern": {
+        "AccessPattern::NONE": 0,
+        "AccessPattern::Strided": 8,
+        "AccessPattern::Contiguous": 6,
+        "AccessPattern::Random": 2,
+        "AccessPattern::StridedEquallySized": 12,
+        "AccessPattern::ContiguousEquallySized": 48,
+        "AccessPattern::RandomEquallySized": 0
+      }
+    }
+  },
+  {
+    "FileName": "db.json",
+    "IoParadigm": ["POSIX I/O"],
+    "AccessModes": "RW",
+    "read": {
+      "#Bytes": 82,
+      "Ticks spent total": 2100,
+      "Ticks spent per Access Pattern": {
+        "AccessPattern::NONE": 1000,
+        "AccessPattern::Strided": 400,
+        "AccessPattern::Contiguous": 100,
+        "AccessPattern::Random": 25,
+        "AccessPattern::StridedEquallySized": 50,
+        "AccessPattern::ContiguousEquallySized": 500,
+        "AccessPattern::RandomEquallySized": 25
+      },
+      "I/O sizes per Access Pattern": {
+        "AccessPattern::NONE": 32,
+        "AccessPattern::Strided": 10,
+        "AccessPattern::Contiguous": 5,
+        "AccessPattern::Random": 2,
+        "AccessPattern::StridedEquallySized": 8,
+        "AccessPattern::ContiguousEquallySized": 20,
+        "AccessPattern::RandomEquallySized": 5
+      }
+    },
+    "write": {
+      "#Bytes": 154,
+      "Ticks spent total": 5800,
+      "Ticks spent per Access Pattern": {
+        "AccessPattern::NONE": 50,
+        "AccessPattern::Strided": 100,
+        "AccessPattern::Contiguous": 200,
+        "AccessPattern::Random": 25,
+        "AccessPattern::StridedEquallySized": 150,
+        "AccessPattern::ContiguousEquallySized": 5200,
+        "AccessPattern::RandomEquallySized": 75
+      },
+      "I/O sizes per Access Pattern": {
+        "AccessPattern::NONE": 10,
+        "AccessPattern::Strided": 20,
+        "AccessPattern::Contiguous": 30,
+        "AccessPattern::Random": 5,
+        "AccessPattern::StridedEquallySized": 15,
+        "AccessPattern::ContiguousEquallySized": 64,
+        "AccessPattern::RandomEquallySized": 10
+      }
+    }
+  }
+]

@@ -1,0 +1,120 @@
+:root {
+  --dot-size: 10px;        /* overall dot spacing/size */
+  --dot-fill: 30%;         /* how much of the dot is filled */
+}
+
+body {
+  font-family: sans-serif;
+}
+
+.progress-bar {
+  display: flex;
+  height: 30px;
+  margin: 10px 0;
+  border: 1px solid #ccc;
+  background: #eee;
+  position: relative;
+}
+.segment {
+  height: 100%;
+  position: relative;
+}
+
+/* Patterns for fills */
+.read-pattern {
+  background-image: repeating-linear-gradient(
+    45deg,
+    rgba(255,255,255,0.4),
+    rgba(255,255,255,0.4) 2px,
+    transparent 2px,
+    transparent 4px
+  );
+}
+.write-pattern {
+  background-image: radial-gradient(rgba(255,255,255,0.6) var(--dot-fill), transparent var(--dot-fill));
+  background-size: var(--dot-size) var(--dot-size);
+  background-position: calc(var(--dot-size)/2) calc(var(--dot-size)/2);
+}
+
+/* File label */
+.file-label {
+  font-weight: bold;
+  margin-top: 5px;
+}
+
+/* Tooltip styling */
+.tooltip {
+  position: absolute;
+  background-color: rgba(0,0,0,0.8);
+  color: #fff;
+  padding: 6px 10px;
+  border-radius: 4px;
+  pointer-events: none;
+  font-size: 12px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+/* Legend styling */
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  margin-bottom: 15px;
+  font-size: 14px;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  margin-right: 15px;
+  margin-bottom: 5px;
+}
+.legend-box {
+  width: 20px;
+  height: 20px;
+  margin-right: 5px;
+  border: 1px solid black;
+  position: relative;
+}
+.legend-box.read {
+  background-color: #ffffff;
+  background-image: repeating-linear-gradient(
+    45deg,
+	rgba(0,0,0,1),
+    rgba(0,0,0,1) 2px,
+    transparent 2px,
+    transparent 4px
+  );
+}
+
+.legend-box.write {
+  background-color: #ffffff;
+  background-image: radial-gradient(
+  	rgba(0,0,0,1) var(--dot-fill),
+	transparent var(--dot-fill)
+  );
+  background-size: var(--dot-size) var(--dot-size);
+}
+
+.legend-box.metadata {
+  background-color: black;
+}
+
+.legend-group {
+    margin-bottom: 15px;
+}
+
+.legend-group-title {
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+/* Flex container for Access Patterns */
+.legend-group.patterns {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px; /* spacing between items */
+}
+
+.legend-group.patterns .legend-item {
+    width: calc(33.333% - 10px); /* 3 items per row */
+}
