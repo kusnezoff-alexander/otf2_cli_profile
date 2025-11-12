@@ -24,6 +24,6 @@ source_suffix = {
 
 # pull in XML from Doxygen
 breathe_projects = {
-    'OTFProfiler' : '/home/alex/Documents/Work/ra-shk/otf2_cli_profile/build/docs/doxygen/xml'
+    'OTFProfiler' : '/home/alex/Documents/Work/ra_shk/otf2_cli_profile/build/docs/doxygen/xml'
 }
 breathe_default_project = 'OTFProfiler'

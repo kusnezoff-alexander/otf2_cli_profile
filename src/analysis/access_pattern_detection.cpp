@@ -9,6 +9,7 @@
 #include <ranges>
 #include <unordered_map>
 #include <utility>
+#include "all_data.h"
 
 namespace access_pattern_detection {
 
@@ -107,9 +108,15 @@ AccessPattern detect_local_access_pattern(std::vector<std::pair<uint64_t,size_t>
 	}
 }
 
-AccessPattern detect_global_access_pattern(definitions::File& file)
+AccessPattern detect_global_access_pattern(AllData& alldata, definitions::File* file)
 {
 	// analyze all IoHandles that were used to perform I/O on `file`
+
+	// sequentialize accesses from all I/O handles sorted by timestamp and then proceed with *local access pattern detection*
+	for (auto& handle: file->io_handles){
+		auto* ioh = alldata.definitions.iohandles.get(handle);
+		std::cout << ioh->io_accesses.size() << std::endl;
+	}
 }
 
 } // namespace access_pattern_detection

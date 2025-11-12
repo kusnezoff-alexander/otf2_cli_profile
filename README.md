@@ -12,6 +12,13 @@
 ```
 [mpirun] otf-profiler -i input-filename -o output-basename [ARGS]
 ```
+
+For Visualizations:
+```sh
+quarto render output.qmd
+```
+and use `Ctrl+P` to obtain a corresponding pdf
+
 ### Arguments
 
 `--cube`: produce a CUBE profile

@@ -68,19 +68,6 @@ constexpr const char* access_pattern_to_string(AccessPattern access_pattern)
 }
 
 /**
- * We store offsets and sizes in the same vector to keep the order in which offets&sizes have been
- * requested (since eg several offset requests could be performed before requesting an actual size)
- * The type of the elements inside this per-location vector is @ref OffsetOrSize
- */
-struct OffsetOrSize
-{
-	/// `true`=value represents an offset, `false`=value represents a size
-	bool is_offset;
-	/// Actual value of the offset/size
-	uint64_t value;
-};
-
-/**
  * @brief Returns access pattern based on the sequentially ordered offsets and I/O sizes requested by the single location
  *
  *

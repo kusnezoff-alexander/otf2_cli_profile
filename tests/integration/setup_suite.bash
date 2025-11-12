@@ -4,6 +4,7 @@ export PROGRAMS_DIR=${BATS_TEST_DIRNAME}/programs
 export TEST_OUTPUT_DIR=${BATS_TEST_DIRNAME}/out
 
 function setup_suite(){
+	mkdir -p $LOG_DIR $TEST_OUTPUT_DIR
 	# clean output from previous run
 	rm -rf $LOG_DIR/*
 	rm -rf $TEST_OUTPUT_DIR/*

@@ -4,9 +4,9 @@ execute:
   echo: false
 ---
 
-# General Overview
-
 ```{ojs}
+// === Helper Functions
+
 // attached files need to be in same dir !
 results = FileAttachment("results.json").json({ typed: true })
 
@@ -33,6 +33,18 @@ function formatTimeAxis(seconds) {
 
 ```
 
+```{ojs}
+// === Styling
+html`<style>
+  figcaption {
+    font-size: clamp(0.5vw, 0.5em, 2vw);
+    font-style: italic; /* often captions are italic */
+    color: #666;
+    margin-top: 6px;
+  }
+</style>`
+```
+
 ## By paradigm
 
 ```{ojs}
@@ -48,6 +60,7 @@ ioData = Object.entries(results.IOOperations).map(([paradigm, ops]) => ({
 
 // Create charts
 chartBytes = Plot.plot({
+	caption: "(a) I/O size per I/O Paradigm",
 	marks: [Plot.barY(ioData, {x: "paradigm", y: "bytes", fill: "paradigm"})],
 	y: {label: "Bytes", tickFormat: formatBytesAxis},
 	width: 400,
@@ -55,17 +68,19 @@ chartBytes = Plot.plot({
 });
 
 chartTransfer = Plot.plot({
+	caption: "(b) I/O time per I/O Paradigm",
 	marginLeft: 70,
 	marks: [Plot.barY(ioData, {x: "paradigm", y: "transfer", fill: "paradigm"})],
-	y: {label: "IOOperationTime", tickFormat: formatTimeAxis},
+	y: {label: "I/O Operation Time", tickFormat: formatTimeAxis},
 	width: 400,
 	height: 300
 });
 
 chartMeta = Plot.plot({
+	caption: "(c) Meta I/O time per I/O Paradigm",
 	marginLeft: 70,
 	marks: [Plot.barY(ioData, {x: "paradigm", y: "meta", fill: "paradigm"})],
-	y: {label: "MetaOperationTime", tickFormat: formatTimeAxis},
+	y: {label: "Meta I/O Operation Time", tickFormat: formatTimeAxis},
 	width: 400,
 	height: 300
 });
@@ -102,53 +117,70 @@ accessPatternArray = Object.entries(accessPatternData).map(([pattern, val]) => (
 }));
 
 // Strip prefix from pattern labels
-accessPatternArray.forEach(d => {
+_ = accessPatternArray.forEach(d => {
 	d.pattern = d.pattern.replace(/^AccessPattern::/, "");
 });
-
-accessPatternArray
-
-// // Assuming accessPatternArray is already computed
-// Plot.plot({
-// 	marks: [
-// 		// Bytes bars on left axis
-// 		Plot.barY(accessPatternArray, {x: "pattern", y: "bytes", fill: "bytes"}),
-//
-// 		// Ticks bars on right axis
-// 		// TODO: d => d.ticks / ticks_per_second
-// 		Plot.barY(accessPatternArray, {x: "pattern", y: "ticks", fill: "ticks", axis:"y2"})
-// 	],
-// 	x: {label: "Access Pattern"},
-// 	y: {label: "Size (Bytes)"},
-// 	y2: {label: "Time (s)", axis: "right"},
-// })
 ```
 
 ```{ojs}
 function dualAxisY(data, {y, ticks = 10, tickFormat, ...options} = {}) {
   const [y1, y2] = d3.extent(Plot.valueof(data, y));
   const scale = d3.scaleLinear().domain([y1, y2]);
-  return Plot.axisY(d3.ticks(y1, y2, ticks), {...options, y: scale, tickFormat: scale.tickFormat(ticks, tickFormat)});
+  return Plot.axisY(d3.ticks(y1, y2, ticks), {
+    ...options,
+    y: scale,
+    tickFormat
+  });
 }
 
-// inspired by https://observablehq.com/@tophtucker/plot-dual-axis-line-chart
-leftColor = "#4e79a7"
+// Prepare data
+leftColor = "#4e79a7";
 left = Object.entries(accessPatternData).map(([pattern, val]) => ({
-	pattern: pattern.replace(/^AccessPattern::/, ""),
-	ticks: val.ticks,
+  pattern: pattern.replace(/^AccessPattern::/, ""),
+  ticks: val.ticks / ticks_per_second,
 }));
-rightColor = "#f28e2c"
+rightColor = "#f28e2c";
 right = Object.entries(accessPatternData).map(([pattern, val]) => ({
-	pattern: pattern.replace(/^AccessPattern::/, ""),
-	bytes: val.bytes
+  pattern: pattern.replace(/^AccessPattern::/, ""),
+  bytes: val.bytes
 }));
+
+// Plot with formatted bytes axis
 Plot.plot({
+  caption: "Fig.2 I/O Request Sizes and I/O Time by Access Pattern",
+  marginLeft: 70,
   color: {legend: true},
   marks: [
-    dualAxisY(left, {y: "ticks", anchor: "left", color: leftColor}),
-    dualAxisY(right, {y: "bytes", anchor: "right", color: rightColor}),
-	Plot.barY(left, Plot.normalizeY("extent", {x: "pattern", y: "ticks", dx: -20, insetLeft: 40, insetRight: 40, fill: leftColor})),
-	Plot.barY(right, Plot.normalizeY("extent", {x: "pattern", y: "bytes", dx: 20, insetLeft: 40, insetRight: 40, fill: rightColor}))
+    dualAxisY(left, {
+      y: "ticks",
+      anchor: "left",
+      color: leftColor,
+      label: "Ticks",
+	  tickFormat: formatTimeAxis
+    }),
+    dualAxisY(right, {
+      y: "bytes",
+      anchor: "right",
+      color: rightColor,
+      label: "Bytes",
+      tickFormat: formatBytesAxis
+    }),
+    Plot.barY(left, Plot.normalizeY("extent", {
+      x: "pattern",
+      y: "ticks",
+      dx: -20,
+      insetLeft: 40,
+      insetRight: 40,
+      fill: leftColor
+    })),
+    Plot.barY(right, Plot.normalizeY("extent", {
+      x: "pattern",
+      y: "bytes",
+      dx: 20,
+      insetLeft: 40,
+      insetRight: 40,
+      fill: rightColor
+    }))
   ]
 })
 
@@ -249,3 +281,35 @@ Inputs.table(
 )
 ```
 
+## AI Summary
+
+<!--
+TODO: LLM-Generated Analysis of the following plots? (just mentioning some strange things it noticed?)
+
+Used Prompt:
+```
+Pls analyze this pdf which contains diagrams summarizing its I/O behavior. Answer each of the following questions:
+
+Which I/O paradigm is used the most?
+Which Access Pattern is the most dominant one?
+Which files are being operated on the most?
+What should an I/O Performance Engineer look into more after seeing this summary? Especially highlight potential bottlenecks
+The answer is expected to be in the following format:
+1. **I/O Paradigms**: <Your Answer>
+2. **Acces Patterns**: <Your Answer>
+3. **Files**: <Your Answer>
+4. **General Advice**: <Your Answer>
+
+Please don't respond with more than 3-4 sentences per question
+```
+-->
+
+\[HARDCODED LLM Analysis (using Claude Sonnet 4.5\]
+
+**I/O Paradigms**: Based on the visualizations, both ISO C I/O and POSIX I/O appear to be used relatively equally, with similar distributions in I/O sizes and operation times. Neither paradigm shows clear dominance in terms of usage volume. The similar box plot distributions suggest balanced usage across both paradigms in this workload.
+
+**Access Patterns**: The data shows activity across all four patterns (CONTIGUOUS_EQUALLY_SIZED, NONE, RANDOM_EQUALLY_SIZED, and STRIDED_EQUALLY_SIZED), but without clear numerical values, it's difficult to definitively identify the most dominant one. However, the three named files (contiguous.txt, random.txt, strided.txt) suggest that structured patterns (contiguous, random, and strided) are all significantly active. The "NONE" pattern appears to have less activity based on the visual representation.
+
+**Files**: The top files being operated on are random.txt (highest I/O time and significant write activity), contiguous.txt (top write size and high I/O time), and strided.txt (top read size and notable I/O time). These three files dominate across all metrics - read size, write size, and time spent - making them the primary targets for I/O operations in this workload.
+
+**General Advice**: The I/O Performance Engineer should prioritize investigating random.txt as it appears in both top write operations and top I/O time, suggesting random access patterns are creating a bottleneck. The engineer should analyze whether random access can be converted to more sequential patterns or if caching strategies can reduce the performance impact. Additionally, they should examine why strided.txt has high read activity and whether prefetching or buffer optimization could improve performance, and evaluate if the heavy write operations to contiguous.txt can benefit from larger buffer sizes or asynchronous I/O.

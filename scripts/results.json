@@ -1,0 +1,289 @@
+{
+    "Trace": {
+        "FileName": "/home/alex/Documents/Work/ra-shk/otf2_cli_profile/tests/integration/out/scorep_trace_file_access_pattern2/traces.otf2",
+        "Id": 11080106746864628734
+    },
+    "JobId": 0,
+    "NodeCount": 1,
+    "ProcessCount": 1,
+    "ThreadCount": 1,
+    "TimerResolution": 2304710290,
+    "HardwareCounters": [],
+    "Functions": {
+        "COMPILER": {
+            "Count": 1,
+            "Time": 21686
+        },
+        "COMPUTE": {
+            "Count": 25,
+            "Time": 164274
+        }
+    },
+    "Messages": {
+        "COMPILER": {},
+        "COMPUTE": {}
+    },
+    "CollectiveOperations": {
+        "COMPILER": {},
+        "COMPUTE": {}
+    },
+    "IOOperations": {
+        "ISO C I/O": {
+            "Bytes": 78,
+            "Count": 6,
+            "MetaOperationTime": 0,
+            "TransferOperationTime": 8028
+        },
+        "POSIX I/O": {
+            "Bytes": 5,
+            "Count": 5,
+            "MetaOperationTime": 0,
+            "TransferOperationTime": 16790
+        }
+    },
+    "Files": [
+        {
+            "FileName": "",
+            "IoParadigm": [
+                "POSIX I/O"
+            ],
+            "AccessModes": "R",
+            "ParentFile": null,
+            "#Bytes read": 0,
+            "#Bytes write": 0,
+            "Ticks spent": 0,
+            "Nr accesses from different locations": 0,
+            "Ticks spent per Access Pattern": {
+                "AccessPattern::NONE": 0
+            },
+            "I/O sizes per Access Pattern": {
+                "AccessPattern::NONE": 0
+            }
+        },
+        {
+            "FileName": "/home/alex/Documents/Work/ra-shk/otf2_cli_profile/tests/integration/out/contiguous.txt",
+            "IoParadigm": [
+                "ISO C I/O",
+                "POSIX I/O"
+            ],
+            "AccessModes": "W",
+            "ParentFile": null,
+            "#Bytes read": 0,
+            "#Bytes write": 48,
+            "Ticks spent": 5160,
+            "Nr accesses from different locations": 1,
+            "Ticks spent per Access Pattern": {
+                "AccessPattern::NONE": 0,
+                "AccessPattern::CONTIGUOUS_EQUALLY_SIZED": 5160
+            },
+            "I/O sizes per Access Pattern": {
+                "AccessPattern::NONE": 0,
+                "AccessPattern::CONTIGUOUS_EQUALLY_SIZED": 48
+            }
+        },
+        {
+            "FileName": "/home/alex/Documents/Work/ra-shk/otf2_cli_profile/tests/integration/out/random.txt",
+            "IoParadigm": [
+                "POSIX I/O"
+            ],
+            "AccessModes": "W",
+            "ParentFile": null,
+            "#Bytes read": 0,
+            "#Bytes write": 5,
+            "Ticks spent": 16790,
+            "Nr accesses from different locations": 1,
+            "Ticks spent per Access Pattern": {
+                "AccessPattern::RANDOM_EQUALLY_SIZED": 16790
+            },
+            "I/O sizes per Access Pattern": {
+                "AccessPattern::RANDOM_EQUALLY_SIZED": 5
+            }
+        },
+        {
+            "FileName": "/home/alex/Documents/Work/ra-shk/otf2_cli_profile/tests/integration/out/strided.txt",
+            "IoParadigm": [
+                "ISO C I/O",
+                "POSIX I/O"
+            ],
+            "AccessModes": "R",
+            "ParentFile": null,
+            "#Bytes read": 30,
+            "#Bytes write": 0,
+            "Ticks spent": 2868,
+            "Nr accesses from different locations": 1,
+            "Ticks spent per Access Pattern": {
+                "AccessPattern::NONE": 0,
+                "AccessPattern::STRIDED_EQUALLY_SIZED": 2868
+            },
+            "I/O sizes per Access Pattern": {
+                "AccessPattern::NONE": 0,
+                "AccessPattern::STRIDED_EQUALLY_SIZED": 30
+            }
+        },
+        {
+            "FileName": "STDERR_FILENO",
+            "IoParadigm": [
+                "POSIX I/O"
+            ],
+            "AccessModes": "R",
+            "ParentFile": null,
+            "#Bytes read": 0,
+            "#Bytes write": 0,
+            "Ticks spent": 0,
+            "Nr accesses from different locations": 0,
+            "Ticks spent per Access Pattern": {
+                "AccessPattern::NONE": 0
+            },
+            "I/O sizes per Access Pattern": {
+                "AccessPattern::NONE": 0
+            }
+        },
+        {
+            "FileName": "STDIN_FILENO",
+            "IoParadigm": [
+                "POSIX I/O"
+            ],
+            "AccessModes": "R",
+            "ParentFile": null,
+            "#Bytes read": 0,
+            "#Bytes write": 0,
+            "Ticks spent": 0,
+            "Nr accesses from different locations": 0,
+            "Ticks spent per Access Pattern": {
+                "AccessPattern::NONE": 0
+            },
+            "I/O sizes per Access Pattern": {
+                "AccessPattern::NONE": 0
+            }
+        },
+        {
+            "FileName": "STDOUT_FILENO",
+            "IoParadigm": [
+                "POSIX I/O"
+            ],
+            "AccessModes": "R",
+            "ParentFile": null,
+            "#Bytes read": 0,
+            "#Bytes write": 0,
+            "Ticks spent": 0,
+            "Nr accesses from different locations": 0,
+            "Ticks spent per Access Pattern": {
+                "AccessPattern::NONE": 0
+            },
+            "I/O sizes per Access Pattern": {
+                "AccessPattern::NONE": 0
+            }
+        },
+        {
+            "FileName": "all open output streams",
+            "IoParadigm": [
+                "ISO C I/O"
+            ],
+            "AccessModes": "RW",
+            "ParentFile": null,
+            "#Bytes read": 0,
+            "#Bytes write": 0,
+            "Ticks spent": 0,
+            "Nr accesses from different locations": 0,
+            "Ticks spent per Access Pattern": {
+                "AccessPattern::NONE": 0
+            },
+            "I/O sizes per Access Pattern": {
+                "AccessPattern::NONE": 0
+            }
+        },
+        {
+            "FileName": "stderr",
+            "IoParadigm": [
+                "ISO C I/O"
+            ],
+            "AccessModes": "W",
+            "ParentFile": null,
+            "#Bytes read": 0,
+            "#Bytes write": 0,
+            "Ticks spent": 0,
+            "Nr accesses from different locations": 0,
+            "Ticks spent per Access Pattern": {
+                "AccessPattern::NONE": 0
+            },
+            "I/O sizes per Access Pattern": {
+                "AccessPattern::NONE": 0
+            }
+        },
+        {
+            "FileName": "stdin",
+            "IoParadigm": [
+                "ISO C I/O"
+            ],
+            "AccessModes": "R",
+            "ParentFile": null,
+            "#Bytes read": 0,
+            "#Bytes write": 0,
+            "Ticks spent": 0,
+            "Nr accesses from different locations": 0,
+            "Ticks spent per Access Pattern": {
+                "AccessPattern::NONE": 0
+            },
+            "I/O sizes per Access Pattern": {
+                "AccessPattern::NONE": 0
+            }
+        },
+        {
+            "FileName": "stdout",
+            "IoParadigm": [
+                "ISO C I/O"
+            ],
+            "AccessModes": "W",
+            "ParentFile": null,
+            "#Bytes read": 0,
+            "#Bytes write": 0,
+            "Ticks spent": 0,
+            "Nr accesses from different locations": 0,
+            "Ticks spent per Access Pattern": {
+                "AccessPattern::NONE": 0
+            },
+            "I/O sizes per Access Pattern": {
+                "AccessPattern::NONE": 0
+            }
+        },
+        {
+            "FileName": "sync - commit buffer cache to disk",
+            "IoParadigm": [
+                "POSIX I/O"
+            ],
+            "AccessModes": "RW",
+            "ParentFile": null,
+            "#Bytes read": 0,
+            "#Bytes write": 0,
+            "Ticks spent": 0,
+            "Nr accesses from different locations": 0,
+            "Ticks spent per Access Pattern": {
+                "AccessPattern::NONE": 0
+            },
+            "I/O sizes per Access Pattern": {
+                "AccessPattern::NONE": 0
+            }
+        }
+    ],
+    "Regions": [
+        {
+            "RegionName": "write",
+            "IoParadigm": [],
+            "AccessModes": "",
+            "#Bytes read": 0,
+            "#Bytes write": 83,
+            "Ticks spent": 24818,
+            "Top 5 Callees": [
+                {
+                    "Region name": "main",
+                    "Source lines": "?-?",
+                    "Nr calls": 5
+                }
+            ]
+        }
+    ],
+    "ParallelRegionTime": 0,
+    "SerialRegionTime": 185960,
+    "TotalFunctions": 10,
+    "TotalCalls": 26
+}
