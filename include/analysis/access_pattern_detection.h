@@ -1,8 +1,10 @@
 #pragma once
 
 #include <otf2/OTF2_GeneralDefinitions.h>
+#include <boost/container_hash/hash.hpp>
 #include <cassert>
 #include <cstdint>
+#include <unordered_map>
 #include <vector>
 
 // forward declaration
@@ -12,6 +14,7 @@ namespace definitions {
 }
 using Fpos = uint64_t;
 using IOAccesses = std::vector<std::pair<OTF2_TimeStamp, std::pair<Fpos,size_t>>>;
+using TimeInterval = std::pair<OTF2_TimeStamp,OTF2_TimeStamp>;
 
 namespace access_pattern_detection {
 
@@ -41,16 +44,9 @@ enum class AccessPattern {
 	NONE,
 	/// No holes in btw accesses (`last_offset + current_size = next_offset`)
 	CONTIGUOUS,
-	/// `CONTIGUOUS` and all sizes are equally sized
-	/// @note This means that the offsets were equi-distant (like in the STRIDED case)
-	CONTIGUOUS_EQUALLY_SIZED,
 	/// Accesses with equal distances btw offsets BUT without reading all bytes btw the two
 	/// offsets (which would be a CONTIGUOUS access pattern)
 	STRIDED,
-	/// Strided (=equal distances btw offsets) AND with equally sized requests
-	STRIDED_EQUALLY_SIZED,
-	/// Offsets are distributed randomly, but all requested sizes are equal
-	RANDOM_EQUALLY_SIZED,
 	/// None of the above
 	RANDOM,
 };
@@ -63,13 +59,30 @@ constexpr const char* access_pattern_to_string(AccessPattern access_pattern)
 	switch (access_pattern) {
 		ENUM_TO_STRING_CASE(AccessPattern::NONE)
 		ENUM_TO_STRING_CASE(AccessPattern::CONTIGUOUS)
-		ENUM_TO_STRING_CASE(AccessPattern::CONTIGUOUS_EQUALLY_SIZED)
 		ENUM_TO_STRING_CASE(AccessPattern::STRIDED)
-		ENUM_TO_STRING_CASE(AccessPattern::STRIDED_EQUALLY_SIZED)
-		ENUM_TO_STRING_CASE(AccessPattern::RANDOM_EQUALLY_SIZED)
 		ENUM_TO_STRING_CASE(AccessPattern::RANDOM)
 	}
 }
+
+struct pair_hash {
+    std::size_t operator()(const std::pair<uint64_t,uint64_t>& p) const noexcept {
+        std::size_t seed = 0;
+        boost::hash_combine(seed, p.first);
+        boost::hash_combine(seed, p.second);
+        return seed;
+    }
+};
+
+
+struct PatternStatistics {
+	uint64_t io_size;
+	uint64_t ticks_spent;
+};
+
+struct AnalysisResult {
+	std::unordered_map<TimeInterval, AccessPattern, pair_hash> pattern_per_timeinterval;
+	std::unordered_map<AccessPattern, PatternStatistics> stats_per_pattern;
+};
 
 /**
  * @brief Returns access pattern based on the sequentially ordered offsets and I/O sizes requested by the single location
@@ -86,8 +99,7 @@ constexpr const char* access_pattern_to_string(AccessPattern access_pattern)
  *		- @ref AccessPattern::RANDOM if none of the above conditions are met
  *		- `EQUALLY_SIZED`-variants if @ref ALMOST_EQUAL_THRESHOLD of differences between offsets are equal
  */
-AccessPattern detect_local_access_pattern(IOAccesses& io_accesses);
-
+std::unordered_map<TimeInterval, AccessPattern, pair_hash> detect_local_access_pattern(IOAccesses& io_accesses);
 
 /**
  * @brief Returns access pattern based on the sequentially ordered offsets and I/O sizes requested by all locations onto a single file

@@ -68,6 +68,15 @@ if (USE_OTF2)
     set (VERSION_OTF2_MINOR ${OTF2_VERSION_MINOR})
 endif()
 
+find_package(Boost 1.71 REQUIRED COMPONENTS system filesystem)
+
+if(Boost_FOUND)
+    message(STATUS "Boost include dirs: ${Boost_INCLUDE_DIRS}")
+    message(STATUS "Boost libraries: ${Boost_LIBRARIES}")
+else()
+    message(FATAL_ERROR "Boost not found")
+endif()
+
 option (USE_Cubelib "USE Cube package (library and GUI)" ON)
 if (USE_Cubelib)
     find_package (Cubelib)
@@ -84,12 +93,6 @@ option (USE_JSON "USE JSON outputter (via rapidjson library)" ON)
 if(USE_JSON)
     find_package(RapidJson)
     set(HAVE_JSON RapidJson_FOUND)
-endif()
-
-option (USE_DATA_OUT "export everything into json format" ON)
-if(USE_DATA_OUT)
-    find_package(RapidJson)
-    set(HAVE_DATA_OUT RapidJson_FOUND)
 endif()
 
 # === Compilation-specific
@@ -121,10 +124,11 @@ add_executable (otf-profiler ${SOURCE_FILES})
 target_compile_options(otf-profiler PRIVATE -Wno-error)
 target_compile_features(otf-profiler PUBLIC cxx_std_11)
 target_link_directories(otf-profiler PRIVATE ${OTF2_PREFIX}/lib)
-target_link_libraries(otf-profiler ${EXTRA_LIBS} otf2)
+target_link_libraries(otf-profiler ${EXTRA_LIBS} otf2 ${Boost_LIBRARIES})
 target_include_directories(otf-profiler PRIVATE
-	 ${PROJECT_SOURCE_DIR}/include
+	${PROJECT_SOURCE_DIR}/include
 	${OTF2_PREFIX}/include
+	${Boost_INCLUDE_DIRS}
 )
 
 # add the install targets
