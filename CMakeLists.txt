@@ -25,6 +25,7 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/") 		# own `.cmake` fil
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/module/") 	# add module files for external pkgs under `cmake/modules`
 include(DefaultBuildType)
 include(BatsTests)
+include(QuartoFrontend)
 
 # === Dependencies
 include(ExternalProject)
@@ -101,42 +102,12 @@ set(SOURCE_FILES
 	src/analysis/access_pattern_detection.cpp
 )
 
-if (HAVE_OPEN_TRACE_FORMAT AND USE_OTF)
-    include_directories("${OTF_INCLUDE_DIRS}")
-    list(APPEND SOURCE_FILES src/reader/OTFReader.cpp)
-    list(APPEND EXTRA_LIBS "${OTF_LIBRARIES}")
-endif()
-
 if (HAVE_OTF2 AND USE_OTF2)
     include_directories("${OTF2_INCLUDE_DIRS}")
     list(APPEND SOURCE_FILES src/reader/OTF2Reader.cpp)
     list(APPEND EXTRA_LIBS "${OTF2_LIBRARIES}")
 endif()
 
-if (HAVE_CUBE AND USE_Cubelib)
-    include_directories("${Cubelib_INCLUDE_DIRS}")
-    list(APPEND SOURCE_FILES src/output/create_cube.cpp)
-    list(APPEND EXTRA_LIBS "${Cubelib_LIBRARIES}")
-endif()
-
-if (HAVE_JSON AND USE_JSON)
-    include_directories("${RapidJson_INCLUDE_DIRS}")
-    list(APPEND SOURCE_FILES src/output/create_json.cpp)
-endif ()
-
-
-list(APPEND SOURCE_FILES src/output/create_dot.cpp)
-list(APPEND SOURCE_FILES src/output/dot_writer.cpp)
-
-if (HAVE_DATA_OUT AND USE_DATA_OUT)
-    include_directories("${RapidJson_INCLUDE_DIRS}")
-    list(APPEND SOURCE_FILES src/output/data_out.cpp)
-endif()
-
-
-if (HAVE_JSON)
-    list(APPEND SOURCE_FILES src/reader/jsonreader.cpp)
-endif()
 # configure a header file to pass some of the CMake settings
 # to the source code
 configure_file (

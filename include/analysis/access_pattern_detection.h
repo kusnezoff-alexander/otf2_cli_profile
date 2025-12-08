@@ -1,5 +1,6 @@
 #pragma once
 
+#include <otf2/OTF2_GeneralDefinitions.h>
 #include <cassert>
 #include <cstdint>
 #include <vector>
@@ -7,7 +8,10 @@
 // forward declaration
 namespace definitions {
 	struct File;
+
 }
+using Fpos = uint64_t;
+using IOAccesses = std::vector<std::pair<OTF2_TimeStamp, std::pair<Fpos,size_t>>>;
 
 namespace access_pattern_detection {
 
@@ -82,7 +86,7 @@ constexpr const char* access_pattern_to_string(AccessPattern access_pattern)
  *		- @ref AccessPattern::RANDOM if none of the above conditions are met
  *		- `EQUALLY_SIZED`-variants if @ref ALMOST_EQUAL_THRESHOLD of differences between offsets are equal
  */
-AccessPattern detect_local_access_pattern(std::vector<std::pair<uint64_t,size_t>>& io_accesses);
+AccessPattern detect_local_access_pattern(IOAccesses& io_accesses);
 
 
 /**

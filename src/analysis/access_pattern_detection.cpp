@@ -10,6 +10,8 @@
 #include <unordered_map>
 #include <utility>
 #include "all_data.h"
+#include "definitions.h"
+#include "otf2/OTF2_GeneralDefinitions.h"
 
 namespace access_pattern_detection {
 
@@ -56,14 +58,17 @@ inline std::pair<bool,uint64_t> is_equally_sized_access(std::vector<uint64_t>& s
 	return is_almost_equal(sizes);
 }
 
-AccessPattern detect_local_access_pattern(std::vector<std::pair<uint64_t,size_t>>& io_accesses)
+AccessPattern detect_local_access_pattern(IOAccesses& io_accesses)
 {
+	std::vector<OTF2_TimeStamp> timestamps;
+	std::ranges::transform(io_accesses, std::back_inserter(timestamps),
+						   [](auto const& p) { return p.first; });
 	std::vector<uint64_t> file_positions;
 	std::ranges::transform(io_accesses, std::back_inserter(file_positions),
-						   [](auto const& p) { return p.first; });
+						   [](auto const& p) { return p.second.first; });
 	std::vector<uint64_t> sizes;
 	std::ranges::transform(io_accesses, std::back_inserter(sizes),
-						   [](auto const& p) { return p.second; });
+						   [](auto const& p) { return p.second.second; });
 
 	bool is_equally_sized, is_equi_distant_access;
 	uint64_t size, fpos_diff; // most frequent size & difference inbetween file positions
@@ -93,7 +98,9 @@ AccessPattern detect_local_access_pattern(std::vector<std::pair<uint64_t,size_t>
 			// sizes are not (almost) equal AND fpos are not (almost) equidistant
 			// -> either `CONTIGUOUS` (next fpos lies directly behind previous requested size) or `RANDOM`
 			auto next_fpos_if_contiguous = io_accesses[0].first; // stores next fpos it the access was contiguous
-			for (auto& [fpos, size]: io_accesses) {
+			for (size_t i=0; i<file_positions.size(); ++i) {
+				auto fpos = file_positions[i];
+				auto size = sizes[i];
 				if (fpos != next_fpos_if_contiguous)
 					// this access was not contiguous
 					return AccessPattern::RANDOM;

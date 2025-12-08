@@ -1,4 +1,4 @@
-
+/*
  This is part of the OTF-Profiler. Copyright by ZIH, TU Dresden 2016-2018.
  Authors: Maximillian Neumann, Denis Hünich, Jens Doleschal
 */
@@ -472,7 +472,7 @@ struct IoHandle {
 	 * @note fpos is relative to the `fsize` the  corresponding File had BEFORE the traced program was run
 	 * (since we can't know whether there was already sth written in that file from the trace)
 	 * */
-	mutable std::vector<std::pair<OTF2_TimeStamp, std::pair<Fpos,size_t>>> io_accesses;
+	mutable IOAccesses io_accesses;
 
 	/** Track current `fpos` into file, determines position at which I/O is being performed
 	 * @note `fpos` could be different from the actual fpos during the run (since the original fsize before the program
@@ -492,11 +492,7 @@ struct IoHandle {
 	 * since the assumption is that local access patterns don't stretch btw opening&closing a file
 	 */
 	access_pattern_detection::AccessPattern get_access_pattern() const{
-
-		std::vector<std::pair<Fpos,size_t>> io_accesses_without_timestamps;
-		std::ranges::transform(io_accesses, std::back_inserter(io_accesses_without_timestamps),
-							   [](auto const& p) { return p.second; });
-		return access_pattern_detection::detect_local_access_pattern(io_accesses_without_timestamps);
+		return access_pattern_detection::detect_local_access_pattern(io_accesses);
 	};
 };
 

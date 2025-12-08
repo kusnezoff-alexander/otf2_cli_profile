@@ -17,10 +17,6 @@
 #include "OTF2Reader.h"
 #endif
 
-#ifdef HAVE_JSON
-#include "jsonreader.h"
-#endif
-
 using namespace std;
 
 unique_ptr<TraceReader> getTraceReader(AllData& alldata) {
@@ -31,30 +27,13 @@ unique_ptr<TraceReader> getTraceReader(AllData& alldata) {
     string filetype = filename.substr(n + 1);
 
     if (filetype == "otf") {
-#ifndef HAVE_OPEN_TRACE_FORMAT
-        cerr << "ERROR: Can't process OTF files!" << endl
-             << "otfprofile was not installed with access to the OTF header files/library." << endl;
+        cerr << "ERROR: Can't process OTF files! Only OTF2 is supported" << endl;
         return nullptr;
-#else
-        return unique_ptr<OTFReader>(new OTFReader);
-#endif
     } else if (filetype == "otf2") {
-#ifndef HAVE_OTF2
-        cerr << "ERROR: Can't process OTF2 files!" << endl
-             << "otfprofile was not installed with access to the OTF2 header files/library." << endl;
-        return nullptr;
-#else
         return unique_ptr<OTF2Reader>(new OTF2Reader);
-#endif
     } else if (filetype == "json"){
-#ifndef HAVE_JSON
-        cerr << "ERROR: Can't process json files!" << endl
-             << "rapidjson was not found." << endl;
+        cerr << "ERROR: Can't process json files! Support was dropped." << endl;
         return nullptr;
-#else
-    #define HAVE_DATA_IN
-        return unique_ptr<JsonReader>(new JsonReader);
-#endif
     } else
         cerr << "ERROR: Unknown file type!" << endl;
 

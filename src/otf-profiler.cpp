@@ -8,28 +8,10 @@
 #include "tracereader.h"
 #include "utils.h"
 
-#ifdef HAVE_CUBE
-#include "create_cube.h"
-#endif /* HAVE_CUBE*/
-
-#ifdef HAVE_JSON
-#include "create_json.h"
-#endif /* HAVE_JSON */
-
 #ifdef OTFPROFILER_MPI
 #include <mpi.h>
 #include "reduce_data.h"
 #endif /* OTFPROFILER_MPI */
-
-#include "create_dot.h"
-
-#ifdef HAVE_DATA_OUT
-#include "data_out.h"
-#endif /* HAVE_DATA_OUT */
-
-#ifdef HAVE_DATA_IN
-#include "jsonreader.h"
-#endif /* HAVE_DATA_IN */
 
 using namespace std;
 
@@ -131,39 +113,6 @@ int main(int argc, char** argv) {
         alldata.tm.stop(ScopeID::REDUCE);
     }
 #endif /* OTFPROFILER_MPI */
-
-#ifdef HAVE_CUBE
-    if (alldata.params.create_cube) {
-        /* step 6.3: create CUBE output */
-        alldata.tm.start(ScopeID::CUBE);
-        CreateCube(alldata);
-        alldata.tm.stop(ScopeID::CUBE);
-    }
-#endif
-
-#ifdef HAVE_JSON
-    if (alldata.params.create_json) {
-        /* step 6.3: create CUBE output */
-        alldata.tm.start(ScopeID::JSON);
-        CreateJSON(alldata);
-        alldata.tm.stop(ScopeID::JSON);
-    }
-#endif
-
-// DOT
-if (alldata.params.create_dot) {
-    alldata.tm.start(ScopeID::DOT);
-    CreateDot(alldata);
-    alldata.tm.stop(ScopeID::DOT);
-}
-
-#ifdef HAVE_DATA_OUT
-    if (alldata.params.data_dump) {
-        alldata.tm.start(ScopeID::JSON);
-        DataOut(alldata);
-        alldata.tm.stop(ScopeID::JSON);
-    }
-#endif
     alldata.tm.stop(ScopeID::TOTAL);
 #ifdef SHOW_RESULTS
     /* step 6.3: show result data on stdout */
