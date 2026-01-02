@@ -686,7 +686,8 @@ OTF2_CallbackCode OTF2Reader::io_operation_complete_callback(OTF2_LocationRef lo
     auto* alldata     = static_cast<AllData*>(userData);
     auto  found_start = open_io_events.find(matchingId);
     if (found_start != open_io_events.end()) {
-        auto duration  = time - found_start->second.begin_time;
+		auto start_time = found_start->second.begin_time;
+        auto duration  = time - start_time;
         auto bytes_req = found_start->second.bytes_request;
         open_io_events.erase(found_start);
         auto h = alldata->definitions.iohandles.get(handle);
@@ -715,7 +716,7 @@ OTF2_CallbackCode OTF2Reader::io_operation_complete_callback(OTF2_LocationRef lo
 			io_data->region = region_id;
 		}
 
-		h->io_accesses.push_back({time, {h->fpos, bytesResult}});
+		h->io_accesses.push_back({time, {h->fpos, bytesResult, start_time}});
 
 		// Update `fpos`
 		h->fpos += bytesResult;

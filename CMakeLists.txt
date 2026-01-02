@@ -5,10 +5,10 @@ project ( OTFProfiler VERSION 2.0.0 )
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-set(CMAKE_CXX_STANDARD 20)       # or 20, 23...
+set(CMAKE_CXX_STANDARD 20)
 
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=address -fno-omit-frame-pointer")
-set(CMAKE_LINKER_FLAGS_DEBUG "${CMAKE_LINKER_FLAGS_DEBUG} -fsanitize=address")
+# set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=address -fno-omit-frame-pointer")
+# set(CMAKE_LINKER_FLAGS_DEBUG "${CMAKE_LINKER_FLAGS_DEBUG} -fsanitize=address")
 
 include_directories("${PROJECT_BINARY_DIR}")
 include_directories("${PROJECT_SOURCE_DIR}/include")
@@ -26,6 +26,11 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/module/") 	# add module
 include(DefaultBuildType)
 include(BatsTests)
 include(QuartoFrontend)
+
+option(ENABLE_TEST "Enable GTest" OFF)
+# if (ENABLE_TEST)
+	include(GTest)
+# endif()
 
 # === Dependencies
 include(ExternalProject)
@@ -116,6 +121,16 @@ endif()
 configure_file (
   "${PROJECT_SOURCE_DIR}/include/otf-profiler-config.h.in"
   "${PROJECT_BINARY_DIR}/otf-profiler-config.h"
+)
+
+# build lib
+add_library(otf-profiler-lib STATIC ${SOURCE_FILES}) # TODO: make SHARED ?
+target_compile_features(otf-profiler-lib PUBLIC cxx_std_20)
+target_link_libraries(otf-profiler-lib PRIVATE otf2 ${Boost_LIBRARIES})
+target_include_directories(otf-profiler-lib PUBLIC
+    ${PROJECT_SOURCE_DIR}/include
+    ${OTF2_PREFIX}/include
+    ${Boost_INCLUDE_DIRS}
 )
 
 # build sequential version of OTF-Profiler

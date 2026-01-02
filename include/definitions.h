@@ -491,7 +491,7 @@ struct IoHandle {
 	/** Local Access Patterns are computed per IoHandle
 	 * since the assumption is that local access patterns don't stretch btw opening&closing a file
 	 */
-	std::unordered_map<TimeInterval, AccessPattern, pair_hash> get_access_pattern() const{
+	AnalysisResult get_access_pattern() const{
 		return access_pattern_detection::detect_local_access_pattern(io_accesses);
 	};
 };

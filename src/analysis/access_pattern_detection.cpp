@@ -74,14 +74,14 @@ AccessPattern detect_access_pattern_from_x_acccesses(IOAccesses& io_accesses_rin
 	}
 
 	bool is_contiguous = std::adjacent_find(io_accesses.begin(), io_accesses.end(),
-			[](auto io1, auto io2){ return io1.second.first+io1.second.second == io2.second.first ;}) > io_accesses.end();
+			[](auto io1, auto io2){ return std::get<1>(io1.second) + std::get<2>(io1.second) == std::get<1>(io2.second) ;}) > io_accesses.end();
 	if (is_contiguous) {
 		return AccessPattern::CONTIGUOUS;
 	}
 
-	uint64_t distance = io_accesses[0].second.first - io_accesses[1].second.first;
+	uint64_t distance = std::get<1>(io_accesses[0].second) - std::get<1>(io_accesses[1].second);
 	bool is_strided= std::adjacent_find(io_accesses.begin(), io_accesses.end(),
-			[&distance](auto io1, auto io2){ return io2.second.first-io1.second.first != distance;}) > io_accesses.end();
+			[&distance](auto io1, auto io2){ return (std::get<1>(io2.second) - std::get<1>(io1.second)) != distance;}) > io_accesses.end();
 	if (is_strided) {
 		return AccessPattern::STRIDED;
 	}
@@ -89,17 +89,39 @@ AccessPattern detect_access_pattern_from_x_acccesses(IOAccesses& io_accesses_rin
 	return AccessPattern::RANDOM;
 }
 
-std::unordered_map<TimeInterval, AccessPattern, pair_hash> detect_local_access_pattern(IOAccesses& io_accesses)
+int mod(int a, int b) {
+    return (a % b + b) % b;
+}
+
+AnalysisResult detect_local_access_pattern(IOAccesses& io_accesses)
 {
 
 	std::unordered_map<TimeInterval, AccessPattern, pair_hash> pattern_per_timeinterval;
 	// NOTE: for less then `NR_ACCESSES_THRESHOLD` requests we can't really speak of an access pattern
 	if (io_accesses.size() < NR_ACCESSES_THRESHOLD) {
 		pattern_per_timeinterval[std::pair(io_accesses[0].first, io_accesses.back().first)] = AccessPattern::NONE;
-		return pattern_per_timeinterval;
+		uint64_t io_size = std::accumulate(io_accesses.begin(), io_accesses.end(), 0,
+				[](uint64_t acc, auto& io) {
+					return acc + std::get<2>(io.second);
+				});;
+		uint64_t ticks_spent = io_accesses.back().first - io_accesses[0].first;
+		PatternStatistics stats (io_size, ticks_spent);
+		std::unordered_map<AccessPattern, PatternStatistics> stats_per_pattern = {
+			{AccessPattern::NONE, stats}
+		};
+		AnalysisResult result (pattern_per_timeinterval, stats_per_pattern);
+		return result;
 	}
 
+	std::unordered_map<AccessPattern, PatternStatistics> stats_per_pattern = {
+		{AccessPattern::NONE, PatternStatistics(0,0)},
+		{AccessPattern::CONTIGUOUS, PatternStatistics(0,0)},
+		{AccessPattern::STRIDED, PatternStatistics(0,0)},
+		{AccessPattern::RANDOM, PatternStatistics(0,0)},
+	};
+
 	AccessPattern curr_pattern = AccessPattern::CONTIGUOUS;
+	PatternStatistics curr_stats; // keeps track of IO_Size & Ticks_spent until actual pattern is clear
 
 	// these vars will be needed
 	uint64_t next_fpos_if_contiguous; 					 // used to determine if access pattern is still contiguous (by comparing to next fpos)
@@ -111,9 +133,9 @@ std::unordered_map<TimeInterval, AccessPattern, pair_hash> detect_local_access_p
 	OTF2_TimeStamp last_x_accesses_prev_interval_end;
 	IOAccesses last_x_accesses {
 		// insert some values so `last_fpos_distance` actually makes sense
-		std::pair(0, std::pair(std::numeric_limits<uint64_t>::max(), std::numeric_limits<uint64_t>::max())),
-		std::pair(0, std::pair(std::numeric_limits<uint64_t>::max(), std::numeric_limits<uint64_t>::max())),
-		std::pair(0, std::pair(std::numeric_limits<uint64_t>::max(), std::numeric_limits<uint64_t>::max())), // this is only here for `last_x_accesses_prev_interval_end`
+		std::pair(0, std::tuple(std::numeric_limits<uint64_t>::max(), std::numeric_limits<uint64_t>::max(), std::numeric_limits<uint64_t>::max())),
+		std::pair(0, std::tuple(std::numeric_limits<uint64_t>::max(), std::numeric_limits<uint64_t>::max(), std::numeric_limits<uint64_t>::max())),
+		std::pair(0, std::tuple(std::numeric_limits<uint64_t>::max(), std::numeric_limits<uint64_t>::max(), std::numeric_limits<uint64_t>::max())),  // this is only here for `last_x_accesses_prev_interval_end`
 	};													// tracks the access pattern of the last `NR_ACCESSES_THRESHOLD` I/O-accesses
 														// (eg for detecting when we are again in a STRIDED access after having had some random access inbtw)
 	short id_into_last_x_accesses = 2;					// pretend `last_x_accesses` is a ringbuffer (with 2 elements already inserted
@@ -122,22 +144,24 @@ std::unordered_map<TimeInterval, AccessPattern, pair_hash> detect_local_access_p
 
 	// ! GOAL: single pass over all accesses (which can be a lot)
 	for(auto& io_access: io_accesses) {
-		auto& [timestamp, inner] = io_access;
-		auto& [fpos, size] = inner;
+		auto& [end_time, inner] = io_access;
+		auto& [fpos, size, start_time] = inner;
+		curr_stats += PatternStatistics(size, end_time-start_time); // added to result when `io_accesses` are checked in
 
 		id_into_last_x_accesses = (id_into_last_x_accesses+1) % NR_ACCESSES_THRESHOLD;
 		last_x_accesses_prev_interval_end = last_x_accesses[id_into_last_x_accesses].first;
 		last_x_accesses[id_into_last_x_accesses] = io_access;
 
-		last_fpos_distance = last_x_accesses[(id_into_last_x_accesses-1)%NR_ACCESSES_THRESHOLD].second.first
-								- last_x_accesses[(id_into_last_x_accesses-2)%NR_ACCESSES_THRESHOLD].second.first;
+		last_fpos_distance = std::get<1>(last_x_accesses[mod(id_into_last_x_accesses-1,NR_ACCESSES_THRESHOLD)].second)
+								- std::get<1>(last_x_accesses[mod(id_into_last_x_accesses-2, NR_ACCESSES_THRESHOLD)].second);
 
 		// init things for new interval (with potentially new access pattern)
 		if (do_start_new_interval) {
 			curr_pattern = AccessPattern::CONTIGUOUS;			// start with CONTIGUOUS as default bc it is the most strict one
+			curr_stats = PatternStatistics(0, 0);
 			nr_io_access_in_current_access_pattern = 0; // counts how many I/O accesses were assigned to the current access pattern
 
-			interval_start = timestamp;
+			interval_start = end_time;
 
 			is_equi_distant = true; // no access yet
 		}
@@ -152,7 +176,8 @@ std::unordered_map<TimeInterval, AccessPattern, pair_hash> detect_local_access_p
 					// if we have already enough access in this pattern let's save it as being CONTIGUOUS..
 					if (nr_io_access_in_current_access_pattern > NR_ACCESSES_THRESHOLD) {
 						// END --- check in this contiguous interval
-						pattern_per_timeinterval[std::pair(interval_start, timestamp)] = AccessPattern::CONTIGUOUS;
+						pattern_per_timeinterval[std::pair(interval_start, end_time)] = AccessPattern::CONTIGUOUS;
+						stats_per_pattern[AccessPattern::CONTIGUOUS] += curr_stats;
 						do_start_new_interval = true;
 						break;
 					} else if (is_equi_distant) {
@@ -175,10 +200,11 @@ std::unordered_map<TimeInterval, AccessPattern, pair_hash> detect_local_access_p
 			case AccessPattern::STRIDED:
 			{
 				// `STRIDED->CONTIGUOUS` not possible (only vice versa), `STRIDED->RANDOM`: if not equidistant anymore
-				if (timestamp == last_timestamp) {
-					// END --- all io_accesses checked
+				if (end_time == last_timestamp) {
+					// END --- check in all io_accesses
 					// if only the last access is not equidistant the whole interval still counts as being accessed via STRIDED pattern
-					pattern_per_timeinterval[std::pair(interval_start,timestamp)] = AccessPattern::STRIDED;
+					pattern_per_timeinterval[std::pair(interval_start,end_time)] = AccessPattern::STRIDED;
+					stats_per_pattern[AccessPattern::STRIDED] += curr_stats;
 					break;
 				}
 
@@ -188,7 +214,7 @@ std::unordered_map<TimeInterval, AccessPattern, pair_hash> detect_local_access_p
 					curr_pattern = AccessPattern::CONTIGUOUS;
 					nr_io_access_in_current_access_pattern = NR_ACCESSES_THRESHOLD;
 
-					interval_start = last_x_accesses[(id_into_last_x_accesses-1)%NR_ACCESSES_THRESHOLD].first; // update when the interval of those last `x` accesses started
+					interval_start = last_x_accesses[mod(id_into_last_x_accesses-1,NR_ACCESSES_THRESHOLD)].first; // update when the interval of those last `x` accesses started
 																											   // (=first of those recorded x events)
 					// leave `is_equi_distant==true` (STRIDED implies equi-distant)
 					assert(is_equi_distant);
@@ -196,11 +222,12 @@ std::unordered_map<TimeInterval, AccessPattern, pair_hash> detect_local_access_p
 					if (nr_io_access_in_current_access_pattern > NR_ACCESSES_THRESHOLD*2) {
 						// there were still some strided accesses before the contiguous ones -> check them in !
 						pattern_per_timeinterval[std::pair(interval_start, last_x_accesses_prev_interval_end)] = AccessPattern::STRIDED;
+						stats_per_pattern[AccessPattern::STRIDED] += curr_stats;
 					}
 					break;
 				}
 
-				if (fpos - last_x_accesses[(id_into_last_x_accesses-1)%NR_ACCESSES_THRESHOLD].second.first
+				if (fpos - std::get<1>(last_x_accesses[mod(id_into_last_x_accesses-1,NR_ACCESSES_THRESHOLD)].second)
 						== last_fpos_distance) {
 					// STRIDED -> STRIDED
 					// we are still equidistant (INVARIANT: `is_equi_distant==true` only if `curr_pattern == AccessPattern::STRIDED`)
@@ -213,8 +240,9 @@ std::unordered_map<TimeInterval, AccessPattern, pair_hash> detect_local_access_p
 						is_equi_distant = false;
 						curr_pattern = AccessPattern::RANDOM;
 					} else {
-						// INTERVAL FINISHED
-						pattern_per_timeinterval[std::pair(interval_start,timestamp)] = AccessPattern::STRIDED;
+						// INTERVAL FINISHED: check in
+						pattern_per_timeinterval[std::pair(interval_start,end_time)] = AccessPattern::STRIDED;
+						stats_per_pattern[AccessPattern::STRIDED] += curr_stats;
 						do_start_new_interval = true;
 						continue;
 					}
@@ -231,18 +259,18 @@ std::unordered_map<TimeInterval, AccessPattern, pair_hash> detect_local_access_p
 					nr_io_access_in_current_access_pattern = NR_ACCESSES_THRESHOLD; // all elements in `last_x_accesses` indicate `live_pattern`
 
 					// setup vars for this new access pattern
-					interval_start = last_x_accesses[(id_into_last_x_accesses-1)%NR_ACCESSES_THRESHOLD].first; // update when the interval of those last `x` accesses started
+					interval_start = last_x_accesses[mod(id_into_last_x_accesses-1,NR_ACCESSES_THRESHOLD)].first; // update when the interval of those last `x` accesses started
 																											   // (=first of those recorded x events)
 					is_equi_distant = curr_pattern==AccessPattern::STRIDED || (
 							// if first two accesses were equidistant all of them must have been
-							(last_x_accesses[(id_into_last_x_accesses-1)%NR_ACCESSES_THRESHOLD].second.first - last_x_accesses[(id_into_last_x_accesses-2)%NR_ACCESSES_THRESHOLD].second.first) // distance btw 1st&2nd access
-						==	(last_x_accesses[(id_into_last_x_accesses-2)%NR_ACCESSES_THRESHOLD].second.first - last_x_accesses[(id_into_last_x_accesses-3)%NR_ACCESSES_THRESHOLD].second.first) // distance btw 2nd&3rd access
+							(std::get<1>(last_x_accesses[mod(id_into_last_x_accesses-1,NR_ACCESSES_THRESHOLD)].second) - std::get<1>(last_x_accesses[mod(id_into_last_x_accesses-2,NR_ACCESSES_THRESHOLD)].second)) // distance btw 1st&2nd access
+						==	(std::get<1>(last_x_accesses[mod(id_into_last_x_accesses-2,NR_ACCESSES_THRESHOLD)].second) - std::get<1>(last_x_accesses[mod(id_into_last_x_accesses-3,NR_ACCESSES_THRESHOLD)].second)) // distance btw 2nd&3rd access
 					);
-
 
 					if (nr_io_access_in_current_access_pattern > NR_ACCESSES_THRESHOLD*2) {
 						// there were still some random accesses before -> check them in !
 						pattern_per_timeinterval[std::pair(interval_start, last_x_accesses_prev_interval_end)] = AccessPattern::RANDOM;
+						stats_per_pattern[AccessPattern::RANDOM] += curr_stats;
 					}
 				} else {
 					// RANDOM -> RANDOM
@@ -256,7 +284,8 @@ std::unordered_map<TimeInterval, AccessPattern, pair_hash> detect_local_access_p
 				break;
 		}
 	}
-	return pattern_per_timeinterval;
+
+	return AnalysisResult(pattern_per_timeinterval, stats_per_pattern);
 }
 
 AccessPattern detect_global_access_pattern(AllData& alldata, definitions::File* file)

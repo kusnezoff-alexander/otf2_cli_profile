@@ -13,7 +13,9 @@ namespace definitions {
 
 }
 using Fpos = uint64_t;
-using IOAccesses = std::vector<std::pair<OTF2_TimeStamp, std::pair<Fpos,size_t>>>;
+using StartTime = OTF2_TimeStamp;
+/** vector of (endTime, (fpos,request_size,startTime)) */
+using IOAccesses = std::vector<std::pair<OTF2_TimeStamp, std::tuple<Fpos,size_t,StartTime>>>;
 using TimeInterval = std::pair<OTF2_TimeStamp,OTF2_TimeStamp>;
 
 namespace access_pattern_detection {
@@ -77,6 +79,18 @@ struct pair_hash {
 struct PatternStatistics {
 	uint64_t io_size;
 	uint64_t ticks_spent;
+
+	PatternStatistics& operator+=(const PatternStatistics& other) {
+        io_size += other.io_size;
+        ticks_spent += other.ticks_spent;
+        return *this;
+    }
+
+    PatternStatistics operator+(const PatternStatistics& other) const {
+        PatternStatistics tmp = *this;
+        tmp += other;
+        return tmp;
+    }
 };
 
 struct AnalysisResult {
@@ -91,6 +105,7 @@ struct AnalysisResult {
  *
  * @param io_accesses 	An I/O access (fpos,size) contains a requested size at a certain file position `fpos` in the file
  * 						NOTE: I/O accesses are expected to be ordered in the same time sequence they have been performed in
+ * 						- ! make sure its size is >1
  * @returns
  *		- @ref AccessPattern::NONE if there are less than @ref NR_ACCESSES_THRESHOLD I/O accesses inside io_accesses
  *		- @ref AccessPattern::CONTIGUOUS if the next fpos continues where the previous I/O left off (after accessing `size` bytes from
@@ -99,7 +114,7 @@ struct AnalysisResult {
  *		- @ref AccessPattern::RANDOM if none of the above conditions are met
  *		- `EQUALLY_SIZED`-variants if @ref ALMOST_EQUAL_THRESHOLD of differences between offsets are equal
  */
-std::unordered_map<TimeInterval, AccessPattern, pair_hash> detect_local_access_pattern(IOAccesses& io_accesses);
+AnalysisResult detect_local_access_pattern(IOAccesses& io_accesses);
 
 /**
  * @brief Returns access pattern based on the sequentially ordered offsets and I/O sizes requested by all locations onto a single file
