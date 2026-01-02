@@ -12,16 +12,26 @@ namespace definitions {
 	struct File;
 
 }
+
+struct IoAccess {
+	OTF2_TimeStamp start_time;
+	OTF2_TimeStamp end_time;
+	uint64_t fpos;
+	uint64_t size;
+};
+
 using Fpos = uint64_t;
 using StartTime = OTF2_TimeStamp;
 /** vector of (endTime, (fpos,request_size,startTime)) */
-using IOAccesses = std::vector<std::pair<OTF2_TimeStamp, std::tuple<Fpos,size_t,StartTime>>>;
+// using IOAccesses = std::vector<std::pair<OTF2_TimeStamp, std::tuple<Fpos,size_t,StartTime>>>;
+using IOAccesses = std::vector<IoAccess>;
 using TimeInterval = std::pair<OTF2_TimeStamp,OTF2_TimeStamp>;
 
 namespace access_pattern_detection {
 
 /** Nr of accesses from which on we can start speaking of Access Patterns
  * since eg a single access can not showcase an access pattern
+ * - WARNING: do NOT make this value <3, some algorithms (eg `detect_local_access_pattern()`) rely on it being >=3
  */
 static const short NR_ACCESSES_THRESHOLD = 3;
 /** Threshold for which we consdier offsets/sizes to be (almost) equal

@@ -5,6 +5,7 @@
 #include <variant>
 
 #include "OTF2Reader.h"
+#include "access_pattern_detection.h"
 #include "definitions.h"
 #include "main_structs.h"
 #include "otf2/OTF2_AttributeList.h"
@@ -716,7 +717,7 @@ OTF2_CallbackCode OTF2Reader::io_operation_complete_callback(OTF2_LocationRef lo
 			io_data->region = region_id;
 		}
 
-		h->io_accesses.push_back({time, {h->fpos, bytesResult, start_time}});
+		h->io_accesses.push_back(IoAccess{start_time,time,  h->fpos, bytesResult });
 
 		// Update `fpos`
 		h->fpos += bytesResult;
