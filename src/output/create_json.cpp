@@ -551,11 +551,14 @@ bool CreateJSON(AllData& alldata) {
 			profile.file_data[file_name].time_spent_in_ticks += io_data.nontransfer_time; // TODO: output `nontransfer_time` separately as metadata-ops-time?
 
 			// get local access pattern
-			auto access_pattern = ioh->get_access_pattern();
-			profile.file_data[file_name].ticks_spent_per_access_pattern[access_pattern]
-				+= io_data.transfer_time;
-			profile.file_data[file_name].iosize_per_access_pattern[access_pattern]
-				+= bytes_read + bytes_write; // REMINDER: one of those is =0
+			auto analysis_result = ioh->get_local_access_pattern_stats();
+			for (auto& [p, stats]: analysis_result.stats_per_pattern) {
+				profile.file_data[file_name].ticks_spent_per_access_pattern[p]
+					+= stats.ticks_spent;
+					// += io_data.transfer_time;
+				profile.file_data[file_name].iosize_per_access_pattern[p]
+					+= stats.io_size;
+			}
 		}
 	}
 

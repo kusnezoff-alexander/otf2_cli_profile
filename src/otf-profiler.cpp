@@ -8,6 +8,10 @@
 #include "tracereader.h"
 #include "utils.h"
 
+#ifdef HAVE_JSON
+#include "create_json.h"
+#endif /* HAVE_JSON */
+
 #ifdef OTFPROFILER_MPI
 #include <mpi.h>
 #include "reduce_data.h"
@@ -113,7 +117,16 @@ int main(int argc, char** argv) {
         alldata.tm.stop(ScopeID::REDUCE);
     }
 #endif /* OTFPROFILER_MPI */
-    alldata.tm.stop(ScopeID::TOTAL);
+#ifdef HAVE_JSON
+		if (alldata.params.create_json) {
+			/* step 6.3: create CUBE output */
+			alldata.tm.start(ScopeID::JSON);
+			CreateJSON(alldata);
+			alldata.tm.stop(ScopeID::JSON);
+		}
+#endif
+
+	alldata.tm.stop(ScopeID::TOTAL);
 #ifdef SHOW_RESULTS
     /* step 6.3: show result data on stdout */
 

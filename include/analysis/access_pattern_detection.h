@@ -7,6 +7,7 @@
 #include <unordered_map>
 #include <vector>
 
+struct AllData;
 // forward declaration
 namespace definitions {
 	struct File;
@@ -132,6 +133,6 @@ AnalysisResult detect_local_access_pattern(IOAccesses& io_accesses);
  * @param offsets (Absolute) Offsets in the same ordered they have been requested by the location via e.g. seeking
  * @param size Request I/O sizes in the same ordered they have been requested by the location during read/write
  */
-AccessPattern detect_global_access_pattern(definitions::File fh);
+AccessPattern detect_global_access_pattern(AllData& alldata, definitions::File* file);
 
 } // namespace access_pattern_detection

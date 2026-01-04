@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <boost/container_hash/hash.hpp>
+#include <cassert>
 #include <cstdint>
 #include <numeric>
 #include <unordered_map>
@@ -18,49 +19,6 @@
 
 namespace access_pattern_detection {
 
-/** @brief Check whether a vector of values meets our definition of "almost equal"
- * - see @ref ALMOST_EQUAL_THRESHOLD
- *
- *   @param v non-empty vector
- *   @returns (is_almost_equal,most_frequent_value)
- */
-std::pair<bool,uint64_t> is_almost_equal(std::vector<uint64_t>& v)
-{
-	assert(!v.empty());
-    std::unordered_map<int, size_t> freq;
-
-    for (auto x : v) ++freq[x];
-    auto [value, max_count] = *std::max_element(
-        freq.begin(), freq.end(),
-        [](auto& a, auto& b){ return a.second < b.second; }
-    );
-    bool is_almost_equal = max_count >= v.size() * ALMOST_EQUAL_THRESHOLD;
-	return std::make_pair(is_almost_equal, value);
-}
-
-/** @brief Checks whether requested fpos have (almost) equal distance inbtw (by our definition: 95% of accesses are equal)
- *
- * @ref AccessPattern
- * @returns (true,<most_frequent_value>) if we consider the requested fpos to have (almost) equal distances
- */
-inline std::pair<bool,uint64_t> has_equi_distant_fpos(std::vector<uint64_t>& fpos)
-{
-	std::vector<uint64_t> fpos_diffs(fpos.size());
-	std::adjacent_difference(fpos.begin(), fpos.end(), fpos_diffs.begin());
-	fpos_diffs.erase(fpos_diffs.begin()); // first elem is copied from original vec when using `adjacent_difference()`
-	return is_almost_equal(fpos_diffs);
-}
-
-/** @brief Checks whether requested sizes are (almost) equal (by our definition: 95% of accesses are equal)
- *
- * @ref AccessPattern
- * @returns (true,<most_frequent_value>) if we consider the requested sizes to be (almost) equal
- */
-inline std::pair<bool,uint64_t> is_equally_sized_access(std::vector<uint64_t>& sizes)
-{
-	return is_almost_equal(sizes);
-}
-
 /** Helper function that takes in the last `NR_ACCESSES_THRESHOLD` I/O Accesses and determines their
  * AccessPattern
  */
@@ -70,14 +28,13 @@ AccessPattern detect_access_pattern_from_3_acccesses(IOAccesses& io_accesses_rin
 	for(short i=0; i<3; ++i){
 		io_accesses[i] = io_accesses_ringbuffer[(ringbuffer_start+i)%3];
 	}
-
 	bool is_contiguous = (io_accesses[0].fpos+io_accesses[0].size == io_accesses[1].fpos)
 		&& (io_accesses[1].fpos+io_accesses[1].size == io_accesses[2].fpos);
 	if (is_contiguous) {
 		return AccessPattern::CONTIGUOUS;
 	}
 
-	bool is_strided =  (io_accesses[0].fpos - io_accesses[1].fpos) == (io_accesses[1].fpos - io_accesses[2].fpos);
+	bool is_strided =  (io_accesses[1].fpos - io_accesses[0].fpos) == (io_accesses[2].fpos - io_accesses[1].fpos);
 	if (is_strided) {
 		return AccessPattern::STRIDED;
 	}
@@ -98,6 +55,8 @@ void init_stats(PatternStatistics& stats, IOAccesses& accesses)
 
 AnalysisResult detect_local_access_pattern(IOAccesses& io_accesses)
 {
+	if (io_accesses.empty())
+		return AnalysisResult({}, {});
 
 	std::unordered_map<TimeInterval, AccessPattern, pair_hash> pattern_per_timeinterval;
 	// NOTE: for less then `NR_ACCESSES_THRESHOLD` requests we can't really speak of an access pattern
@@ -163,6 +122,7 @@ AnalysisResult detect_local_access_pattern(IOAccesses& io_accesses)
 		// init things for new interval (with potentially new access pattern)
 		if (do_start_new_interval) {
 			curr_pattern = AccessPattern::CONTIGUOUS;			// start with CONTIGUOUS as default bc it is the most strict one
+			next_fpos_if_contiguous = io_accesses[i].fpos;
 			curr_stats = PatternStatistics(0, 0);
 			nr_io_access_in_current_access_pattern = 0; // counts how many I/O accesses were assigned to the current access pattern
 
@@ -215,7 +175,7 @@ AnalysisResult detect_local_access_pattern(IOAccesses& io_accesses)
 				}
 
 				// check if `STRIDED -> CONTIGUOUS` is possible
-				AccessPattern live_pattern = detect_access_pattern_from_3_acccesses(io_accesses, id_into_last_x_accesses);
+				AccessPattern live_pattern = detect_access_pattern_from_3_acccesses(last_x_accesses, id_into_last_x_accesses);
 				if (live_pattern == AccessPattern::CONTIGUOUS) {
 					curr_pattern = AccessPattern::CONTIGUOUS;
 					nr_io_access_in_current_access_pattern = NR_ACCESSES_THRESHOLD;
@@ -233,7 +193,7 @@ AnalysisResult detect_local_access_pattern(IOAccesses& io_accesses)
 					break;
 				}
 
-				if (io.fpos - last_x_accesses[mod(id_into_last_x_accesses-1,NR_ACCESSES_THRESHOLD)].size == last_fpos_distance) {
+				if (io.fpos - last_x_accesses[mod(id_into_last_x_accesses-1,NR_ACCESSES_THRESHOLD)].fpos == last_fpos_distance) {
 					// STRIDED -> STRIDED
 					// we are still equidistant (INVARIANT: `is_equi_distant==true` only if `curr_pattern == AccessPattern::STRIDED`)
 					is_equi_distant = true;
@@ -246,9 +206,14 @@ AnalysisResult detect_local_access_pattern(IOAccesses& io_accesses)
 						curr_pattern = AccessPattern::RANDOM;
 					} else {
 						// INTERVAL FINISHED: check in
-						pattern_per_timeinterval[std::pair(interval_start,io.end_time)] = AccessPattern::STRIDED;
+						bool is_last_strided = i==io_accesses.size()-1; // if this is last io: also belongs to strided i guess (last acc might be limited by file size)
+						auto end_time = is_last_strided ? io.end_time : io_accesses[i-1].end_time;
+						pattern_per_timeinterval[std::pair(interval_start,end_time)] = AccessPattern::STRIDED;
 						stats_per_pattern[AccessPattern::STRIDED] += curr_stats;
 						do_start_new_interval = true;
+
+						if (!is_last_strided)
+							i--; // make this last io be part of next pattern
 						continue;
 					}
 				}
