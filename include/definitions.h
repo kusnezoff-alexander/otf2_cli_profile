@@ -533,6 +533,7 @@ struct meta_data {
     std::map<uint64_t, std::map<uint64_t, uint64_t>> metricClassToMetric;
 
     uint64_t timerResolution;
+    uint64_t globalOffset;
     uint32_t myRank;
     uint32_t numRanks;
 

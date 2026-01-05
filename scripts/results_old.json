@@ -1,22 +1,22 @@
 {
     "Trace": {
-        "FileName": "/home/alex/Documents/Work/ra_shk/otf2_cli_profile/tests/integration/out/scorep_trace_file_access_pattern2/traces.otf2",
-        "Id": 6962573343526385661
+        "FileName": "/home/alex/Documents/Work/ra-shk/otf2_cli_profile/tests/integration/out/scorep_trace_file_access_pattern2/traces.otf2",
+        "Id": 11080106746864628734
     },
     "JobId": 0,
     "NodeCount": 1,
     "ProcessCount": 1,
     "ThreadCount": 1,
-    "TimerResolution": 2304527914,
+    "TimerResolution": 2304710290,
     "HardwareCounters": [],
     "Functions": {
         "COMPILER": {
             "Count": 1,
-            "Time": 71432
+            "Time": 21686
         },
         "COMPUTE": {
             "Count": 25,
-            "Time": 677978
+            "Time": 164274
         }
     },
     "Messages": {
@@ -32,13 +32,13 @@
             "Bytes": 78,
             "Count": 6,
             "MetaOperationTime": 0,
-            "TransferOperationTime": 52830
+            "TransferOperationTime": 8028
         },
         "POSIX I/O": {
             "Bytes": 5,
             "Count": 5,
             "MetaOperationTime": 0,
-            "TransferOperationTime": 163150
+            "TransferOperationTime": 16790
         }
     },
     "Files": [
@@ -53,11 +53,15 @@
             "#Bytes write": 0,
             "Ticks spent": 0,
             "Nr accesses from different locations": 0,
-            "Ticks spent per Access Pattern": {},
-            "I/O sizes per Access Pattern": {}
+            "Ticks spent per Access Pattern": {
+                "AccessPattern::NONE": 0
+            },
+            "I/O sizes per Access Pattern": {
+                "AccessPattern::NONE": 0
+            }
         },
         {
-            "FileName": "/home/alex/Documents/Work/ra_shk/otf2_cli_profile/tests/integration/out/contiguous.txt",
+            "FileName": "/home/alex/Documents/Work/ra-shk/otf2_cli_profile/tests/integration/out/contiguous.txt",
             "IoParadigm": [
                 "ISO C I/O",
                 "POSIX I/O"
@@ -66,23 +70,19 @@
             "ParentFile": null,
             "#Bytes read": 0,
             "#Bytes write": 48,
-            "Ticks spent": 16180,
+            "Ticks spent": 5160,
             "Nr accesses from different locations": 1,
             "Ticks spent per Access Pattern": {
                 "AccessPattern::NONE": 0,
-                "AccessPattern::CONTIGUOUS": 16180,
-                "AccessPattern::STRIDED": 0,
-                "AccessPattern::RANDOM": 0
+                "AccessPattern::CONTIGUOUS_EQUALLY_SIZED": 5160
             },
             "I/O sizes per Access Pattern": {
                 "AccessPattern::NONE": 0,
-                "AccessPattern::CONTIGUOUS": 48,
-                "AccessPattern::STRIDED": 0,
-                "AccessPattern::RANDOM": 0
+                "AccessPattern::CONTIGUOUS_EQUALLY_SIZED": 48
             }
         },
         {
-            "FileName": "/home/alex/Documents/Work/ra_shk/otf2_cli_profile/tests/integration/out/random.txt",
+            "FileName": "/home/alex/Documents/Work/ra-shk/otf2_cli_profile/tests/integration/out/random.txt",
             "IoParadigm": [
                 "POSIX I/O"
             ],
@@ -90,23 +90,17 @@
             "ParentFile": null,
             "#Bytes read": 0,
             "#Bytes write": 5,
-            "Ticks spent": 163150,
+            "Ticks spent": 16790,
             "Nr accesses from different locations": 1,
             "Ticks spent per Access Pattern": {
-                "AccessPattern::NONE": 0,
-                "AccessPattern::CONTIGUOUS": 0,
-                "AccessPattern::STRIDED": 0,
-                "AccessPattern::RANDOM": 207400
+                "AccessPattern::RANDOM_EQUALLY_SIZED": 16790
             },
             "I/O sizes per Access Pattern": {
-                "AccessPattern::NONE": 0,
-                "AccessPattern::CONTIGUOUS": 0,
-                "AccessPattern::STRIDED": 0,
-                "AccessPattern::RANDOM": 7
+                "AccessPattern::RANDOM_EQUALLY_SIZED": 5
             }
         },
         {
-            "FileName": "/home/alex/Documents/Work/ra_shk/otf2_cli_profile/tests/integration/out/strided.txt",
+            "FileName": "/home/alex/Documents/Work/ra-shk/otf2_cli_profile/tests/integration/out/strided.txt",
             "IoParadigm": [
                 "ISO C I/O",
                 "POSIX I/O"
@@ -115,19 +109,15 @@
             "ParentFile": null,
             "#Bytes read": 30,
             "#Bytes write": 0,
-            "Ticks spent": 36650,
+            "Ticks spent": 2868,
             "Nr accesses from different locations": 1,
             "Ticks spent per Access Pattern": {
                 "AccessPattern::NONE": 0,
-                "AccessPattern::CONTIGUOUS": 0,
-                "AccessPattern::STRIDED": 36650,
-                "AccessPattern::RANDOM": 0
+                "AccessPattern::STRIDED_EQUALLY_SIZED": 2868
             },
             "I/O sizes per Access Pattern": {
                 "AccessPattern::NONE": 0,
-                "AccessPattern::CONTIGUOUS": 0,
-                "AccessPattern::STRIDED": 30,
-                "AccessPattern::RANDOM": 0
+                "AccessPattern::STRIDED_EQUALLY_SIZED": 30
             }
         },
         {
@@ -141,8 +131,12 @@
             "#Bytes write": 0,
             "Ticks spent": 0,
             "Nr accesses from different locations": 0,
-            "Ticks spent per Access Pattern": {},
-            "I/O sizes per Access Pattern": {}
+            "Ticks spent per Access Pattern": {
+                "AccessPattern::NONE": 0
+            },
+            "I/O sizes per Access Pattern": {
+                "AccessPattern::NONE": 0
+            }
         },
         {
             "FileName": "STDIN_FILENO",
@@ -155,8 +149,12 @@
             "#Bytes write": 0,
             "Ticks spent": 0,
             "Nr accesses from different locations": 0,
-            "Ticks spent per Access Pattern": {},
-            "I/O sizes per Access Pattern": {}
+            "Ticks spent per Access Pattern": {
+                "AccessPattern::NONE": 0
+            },
+            "I/O sizes per Access Pattern": {
+                "AccessPattern::NONE": 0
+            }
         },
         {
             "FileName": "STDOUT_FILENO",
@@ -169,8 +167,12 @@
             "#Bytes write": 0,
             "Ticks spent": 0,
             "Nr accesses from different locations": 0,
-            "Ticks spent per Access Pattern": {},
-            "I/O sizes per Access Pattern": {}
+            "Ticks spent per Access Pattern": {
+                "AccessPattern::NONE": 0
+            },
+            "I/O sizes per Access Pattern": {
+                "AccessPattern::NONE": 0
+            }
         },
         {
             "FileName": "all open output streams",
@@ -183,8 +185,12 @@
             "#Bytes write": 0,
             "Ticks spent": 0,
             "Nr accesses from different locations": 0,
-            "Ticks spent per Access Pattern": {},
-            "I/O sizes per Access Pattern": {}
+            "Ticks spent per Access Pattern": {
+                "AccessPattern::NONE": 0
+            },
+            "I/O sizes per Access Pattern": {
+                "AccessPattern::NONE": 0
+            }
         },
         {
             "FileName": "stderr",
@@ -197,8 +203,12 @@
             "#Bytes write": 0,
             "Ticks spent": 0,
             "Nr accesses from different locations": 0,
-            "Ticks spent per Access Pattern": {},
-            "I/O sizes per Access Pattern": {}
+            "Ticks spent per Access Pattern": {
+                "AccessPattern::NONE": 0
+            },
+            "I/O sizes per Access Pattern": {
+                "AccessPattern::NONE": 0
+            }
         },
         {
             "FileName": "stdin",
@@ -211,8 +221,12 @@
             "#Bytes write": 0,
             "Ticks spent": 0,
             "Nr accesses from different locations": 0,
-            "Ticks spent per Access Pattern": {},
-            "I/O sizes per Access Pattern": {}
+            "Ticks spent per Access Pattern": {
+                "AccessPattern::NONE": 0
+            },
+            "I/O sizes per Access Pattern": {
+                "AccessPattern::NONE": 0
+            }
         },
         {
             "FileName": "stdout",
@@ -225,8 +239,12 @@
             "#Bytes write": 0,
             "Ticks spent": 0,
             "Nr accesses from different locations": 0,
-            "Ticks spent per Access Pattern": {},
-            "I/O sizes per Access Pattern": {}
+            "Ticks spent per Access Pattern": {
+                "AccessPattern::NONE": 0
+            },
+            "I/O sizes per Access Pattern": {
+                "AccessPattern::NONE": 0
+            }
         },
         {
             "FileName": "sync - commit buffer cache to disk",
@@ -239,8 +257,12 @@
             "#Bytes write": 0,
             "Ticks spent": 0,
             "Nr accesses from different locations": 0,
-            "Ticks spent per Access Pattern": {},
-            "I/O sizes per Access Pattern": {}
+            "Ticks spent per Access Pattern": {
+                "AccessPattern::NONE": 0
+            },
+            "I/O sizes per Access Pattern": {
+                "AccessPattern::NONE": 0
+            }
         }
     ],
     "Regions": [
@@ -250,7 +272,7 @@
             "AccessModes": "",
             "#Bytes read": 0,
             "#Bytes write": 83,
-            "Ticks spent": 215980,
+            "Ticks spent": 24818,
             "Top 5 Callees": [
                 {
                     "Region name": "main",
@@ -261,7 +283,7 @@
         }
     ],
     "ParallelRegionTime": 0,
-    "SerialRegionTime": 749410,
+    "SerialRegionTime": 185960,
     "TotalFunctions": 10,
     "TotalCalls": 26
 }

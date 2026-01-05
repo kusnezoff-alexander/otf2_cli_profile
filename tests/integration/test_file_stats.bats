@@ -28,18 +28,27 @@ function create_file_access_pattern_trace(){
 	../build/otf-profiler --json -i ${SCOREP_EXPERIMENT_DIRECTORY}/traces.otf2 -o ${TEST_OUTPUT_DIR}/results
 
 	# get determined access patterns
-	# access_pattern_contiguous=$( jq -r '.Files[] | select(.FileName | contains("contiguous.txt")) | .["Access Patterns"].["contiguous"]' ${TEST_OUTPUT_DIR}/results.json)
-	# access_pattern_strided=$( jq -r '.Files[] | select(.FileName | contains("strided.txt")) | .["Access Patterns"].["strided"]' ${TEST_OUTPUT_DIR}/results.json)
-	# access_pattern_random=$( jq -r '.Files[] | select(.FileName | contains("random.txt")) | .["Access Patterns"].["random"]' ${TEST_OUTPUT_DIR}/results.json)
-	# for debugging:
-	# echo "Contiguous?: ${access_pattern_contiguous}"
-	# echo "Strided?: ${access_pattern_strided}"
-	# echo "Random?: ${access_pattern_random}"
-
 	# For each access-pattern there is one location that performs it (see `file_access_pattern.c`)
-	# [ "$access_pattern_contiguous" = "1" ]
-	# [ "$access_pattern_strided" = "1" ]
-	# [ "$access_pattern_random" = "1" ]
-	echo "OK"
+	access_pattern_contiguous=$( jq -r '.Files[] | select(.FileName | contains("contiguous.txt")) | .["Ticks spent per Access Pattern"].["AccessPattern::CONTIGUOUS"]' ${TEST_OUTPUT_DIR}/results.json)
+	[ "$access_pattern_contiguous" > "0" ]
+	access_pattern_contiguous=$( jq -r '.Files[] | select(.FileName | contains("contiguous.txt")) | .["Ticks spent per Access Pattern"].["AccessPattern::STRIDED"]' ${TEST_OUTPUT_DIR}/results.json)
+	[ "$access_pattern_contiguous" = "0" ]
+	access_pattern_contiguous=$( jq -r '.Files[] | select(.FileName | contains("contiguous.txt")) | .["Ticks spent per Access Pattern"].["AccessPattern::RANDOM"]' ${TEST_OUTPUT_DIR}/results.json)
+	[ "$access_pattern_contiguous" = "0" ]
+
+
+	access_pattern_strided=$( jq -r '.Files[] | select(.FileName | contains("strided.txt")) | .["Ticks spent per Access Pattern"].["AccessPattern::STRIDED"]' ${TEST_OUTPUT_DIR}/results.json)
+	[ "$access_pattern_strided" > "0" ]
+	access_pattern_strided=$( jq -r '.Files[] | select(.FileName | contains("strided.txt")) | .["Ticks spent per Access Pattern"].["AccessPattern::CONTIGUOUS"]' ${TEST_OUTPUT_DIR}/results.json)
+	[ "$access_pattern_strided" = "0" ]
+	access_pattern_strided=$( jq -r '.Files[] | select(.FileName | contains("strided.txt")) | .["Ticks spent per Access Pattern"].["AccessPattern::RANDOM"]' ${TEST_OUTPUT_DIR}/results.json)
+	[ "$access_pattern_strided" = "0" ]
+
+	access_pattern_random=$( jq -r '.Files[] | select(.FileName | contains("random.txt")) | .["Ticks spent per Access Pattern"].["AccessPattern::RANDOM"]' ${TEST_OUTPUT_DIR}/results.json)
+	[ "$access_pattern_random" > "0" ]
+	access_pattern_random=$( jq -r '.Files[] | select(.FileName | contains("random.txt")) | .["Ticks spent per Access Pattern"].["AccessPattern::STRIDED"]' ${TEST_OUTPUT_DIR}/results.json)
+	[ "$access_pattern_random" = "0" ]
+	access_pattern_random=$( jq -r '.Files[] | select(.FileName | contains("random.txt")) | .["Ticks spent per Access Pattern"].["AccessPattern::CONTIGUOUS"]' ${TEST_OUTPUT_DIR}/results.json)
+	[ "$access_pattern_random" = "0" ]
 }
 

@@ -15,10 +15,11 @@ namespace definitions {
 }
 
 struct IoAccess {
-	OTF2_TimeStamp start_time;
-	OTF2_TimeStamp end_time;
+	uint64_t start_time_ns;
+	uint64_t end_time_ns;
 	uint64_t fpos;
 	uint64_t size;
+	uint64_t duration;
 };
 
 using Fpos = uint64_t;
@@ -102,11 +103,34 @@ struct PatternStatistics {
         tmp += other;
         return tmp;
     }
+
+    std::string to_string() const {
+        return "io_size: " + std::to_string(io_size) +
+               ", ticks_spent: " + std::to_string(ticks_spent);
+    }
 };
 
 struct AnalysisResult {
 	std::unordered_map<TimeInterval, AccessPattern, pair_hash> pattern_per_timeinterval;
 	std::unordered_map<AccessPattern, PatternStatistics> stats_per_pattern;
+
+	std::string to_string() {
+		std::ostringstream oss;
+
+		oss << "pattern_per_timeinterval:\n";
+		for (const auto& [interval, pattern] : pattern_per_timeinterval) {
+			oss << "  [" << interval.first << "-" << interval.second << "] -> "
+				<< access_pattern_to_string(pattern) << "\n";
+		}
+
+		oss << "stats_per_pattern:\n";
+		for (const auto& [pattern, stats] : stats_per_pattern) {
+			oss << "  " << access_pattern_to_string(pattern) << " -> "
+				<< stats.to_string() << "\n"; // assume PatternStatistics has to_string()
+		}
+
+		return oss.str();
+	}
 };
 
 /**

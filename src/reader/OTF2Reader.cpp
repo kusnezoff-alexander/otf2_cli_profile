@@ -268,6 +268,7 @@ OTF2_CallbackCode OTF2Reader::handle_def_io_fs_entry(void* userData, OTF2_IoFile
     auto* alldata = static_cast<AllData*>(userData);
 
     alldata->metaData.timerResolution = timerResolution;
+    alldata->metaData.globalOffset= globalOffset;
 
     return OTF2_CALLBACK_SUCCESS;
 }
@@ -716,8 +717,12 @@ OTF2_CallbackCode OTF2Reader::io_operation_complete_callback(OTF2_LocationRef lo
 			auto region_id =  node_stack.front().node_p->function_id;
 			io_data->region = region_id;
 		}
-
-		h->io_accesses.push_back(IoAccess{start_time,time,  h->fpos, bytesResult });
+		// alldata.metaData.timerResolution;
+		std::chrono::duration<double> start_sec = std::chrono::duration<double>(start_time-alldata->metaData.globalOffset) / alldata->metaData.timerResolution;
+		auto start_ns = duration_cast<std::chrono::nanoseconds>(start_sec).count();
+		std::chrono::duration<double> end_sec = std::chrono::duration<double>(time-alldata->metaData.globalOffset) / alldata->metaData.timerResolution;
+		auto end_ns = duration_cast<std::chrono::nanoseconds>(start_sec).count();
+		h->io_accesses.push_back(IoAccess{static_cast<uint64_t>(start_ns),static_cast<uint64_t>(end_ns), h->fpos, bytesResult, duration});
 
 		// Update `fpos`
 		h->fpos += bytesResult;

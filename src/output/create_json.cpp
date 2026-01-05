@@ -91,6 +91,73 @@ namespace access_pattern {
 	}
 };
 
+struct LocationInfo {
+	OTF2_LocationRef location;
+	std::unordered_map<TimeInterval, AccessPattern, pair_hash> pattern_per_timeinterval;
+
+    template <typename Writer>
+    void WriteLocationInfo(Writer& w) const {
+        w.StartObject();
+        w.Key("Location");
+        w.Uint64(location);
+
+		w.Key("Per time interval");
+		w.StartObject();
+		for (auto& v: pattern_per_timeinterval) {
+			auto time_interval = std::to_string(v.first.first) + "-" + std::to_string(v.first.second);
+			auto pattern = access_pattern_to_string(v.second);
+			w.Key(time_interval.c_str());
+			w.String(pattern);
+		}
+		w.EndObject();
+
+        // w.Key("IoParadigm");
+        // w.StartArray();
+        // for (auto pstr : paradigm) {
+        //     w.String(pstr.c_str());
+        // }
+        // w.EndArray();
+        // w.Key("AccessModes");
+        // std::string merged_modes;
+        // for (auto modestr : modes) {
+        //     merged_modes += modestr;
+        // }
+        // w.String(merged_modes.c_str());
+
+		// w.Key("#Bytes read");
+		// w.Uint64(bytes_read);
+		// w.Key("#Bytes write");
+		// w.Uint64(bytes_write);
+		// w.Key("Ticks spent");
+		// w.Uint64(time_spent_in_ticks);
+
+		// w.Key("Nr accessed files");
+		// w.Uint64();
+
+		// // store which access patterns have been used for accessin the files (both how many locations accessed file by this access pattern & % of time of accessing file in this pattern
+		// w.Key("Ticks spent per Access Pattern");
+		// w.StartObject();
+		// for(auto& [access_pattern, ticks_spent] : ticks_spent_per_access_pattern) {
+		// 	w.Key(access_pattern_to_string(access_pattern));
+		// 	w.Uint64(ticks_spent);
+		// }
+		// w.EndObject();
+		// w.Key("I/O sizes per Access Pattern");
+		// w.StartObject();
+		// for(auto& [access_pattern, io_size] : iosize_per_access_pattern) {
+		// 	w.Key(access_pattern_to_string(access_pattern));
+		// 	w.Uint64(io_size);
+		// }
+		// w.EndObject();
+
+        w.EndObject();
+    }
+
+    void operator+=(const LocationInfo& rhs) {
+		pattern_per_timeinterval.insert(rhs.pattern_per_timeinterval.begin(), rhs.pattern_per_timeinterval.end());
+	}
+};
+
 /**
  *	Statistics stored per file
  */
@@ -110,7 +177,6 @@ struct FileInfo {
         modes = ioh->modes;
 
 
-		std::cout << ioh->file_handle->file_name << std::endl;
 		// some io-handles might not contain a location (TODO: check!)
 		if (ioh->location.has_value()) {
 			auto location = ioh->location.value();
@@ -337,6 +403,8 @@ struct WorkflowProfile {
     std::map<std::string, ProfileEntry> io_ops_by_paradigm;
 	/* Statistics per file */
     std::map<std::string, FileInfo>     file_data;
+	/* Statistics per location (rank/process) */
+    std::map<OTF2_LocationRef, LocationInfo>     location_data;
 	/* Statistics per srcline in a region */
 	std::map<std::string, RegionInfo>   io_per_region; // TODO !
 	/* Time (in ticks) spent executing parallel regions */
@@ -410,6 +478,14 @@ void WorkflowProfile::WriteProfile(Writer& w) const {
     w.StartArray();
     for (auto f : file_data) {
         f.second.WriteFileInfo(w);
+    }
+    w.EndArray();
+
+
+    w.Key("Locations");
+    w.StartArray();
+    for (auto l : location_data) {
+        l.second.WriteLocationInfo(w);
     }
     w.EndArray();
 
@@ -515,11 +591,9 @@ bool CreateJSON(AllData& alldata) {
     static std::string transfer_time = "TransferOperationTime";
 
 	/* 1) Store stats per paradigm */
-	cout << "Nr io_data:" << alldata.io_data_per_paradigm.size() << std::endl;
     for (auto io_entry : alldata.io_data_per_paradigm) {
         std::string paradigm_name = alldata.definitions.io_paradigms.get(io_entry.first)->name;
 		IoData io_data = io_entry.second;
-        cout << "Summarizing io for " << paradigm_name << " with bytes=" << io_data.num_bytes << std::endl;
         profile.io_ops_by_paradigm[paradigm_name].entries[bytestr] += io_data.num_bytes;
         profile.io_ops_by_paradigm[paradigm_name].entries[countstr] += io_data.num_operations;
         profile.io_ops_by_paradigm[paradigm_name].entries[transfer_time] += io_data.transfer_time;
@@ -530,6 +604,7 @@ bool CreateJSON(AllData& alldata) {
     for (auto& [file_name, file]: alldata.definitions.filehandles) {
 		for (auto& ioh_id : file->io_handles) {
 			auto ioh = alldata.definitions.iohandles.get(ioh_id);
+			auto location = ioh->location;
 			// auto file_name = ioh->file_handle->file_name;
 			profile.file_data[file_name] += FileInfo(alldata.definitions, ioh_id);
 
@@ -559,7 +634,10 @@ bool CreateJSON(AllData& alldata) {
 				profile.file_data[file_name].iosize_per_access_pattern[p]
 					+= stats.io_size;
 			}
+			if (location.has_value()) // TODO: check why this could be the case
+				profile.location_data[location.value()] += LocationInfo { location.value(), std::move(analysis_result.pattern_per_timeinterval) };
 		}
+		// TODO: global (per file) access pattern
 	}
 
 	/* 3) Store stats per location */
