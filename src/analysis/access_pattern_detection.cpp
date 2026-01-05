@@ -64,9 +64,12 @@ AnalysisResult detect_local_access_pattern(IOAccesses& io_accesses)
 		pattern_per_timeinterval[std::pair(io_accesses[0].start_time_ns, io_accesses.back().end_time_ns)] = AccessPattern::NONE;
 		uint64_t io_size = std::accumulate(io_accesses.begin(), io_accesses.end(), 0,
 				[](uint64_t acc, auto& io) {
-					return acc + io.start_time_ns;
+					return acc + io.size;
 				});;
-		uint64_t ticks_spent = io_accesses.back().end_time_ns - io_accesses[0].end_time_ns;
+		uint64_t ticks_spent = std::accumulate(io_accesses.begin(), io_accesses.end(), 0,
+				[](uint64_t acc, auto& io) {
+					return acc + io.duration;
+				});;
 		PatternStatistics stats (io_size, ticks_spent);
 		std::unordered_map<AccessPattern, PatternStatistics> stats_per_pattern = {
 			{AccessPattern::NONE, stats}

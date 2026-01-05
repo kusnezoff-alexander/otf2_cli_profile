@@ -642,6 +642,7 @@ OTF2_CallbackCode OTF2Reader::io_operation_begin_callback(OTF2_LocationRef locat
     auto* h                    = alldata->definitions.iohandles.get(handle);
 
 	assert(!h->location || h->location == locationID); // in theory `IoHandle`s should be only accessed by the same location
+	h->location = locationID;
     if (!h)
         return OTF2_CALLBACK_ERROR;
     switch (mode) {

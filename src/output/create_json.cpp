@@ -181,6 +181,8 @@ struct FileInfo {
 		if (ioh->location.has_value()) {
 			auto location = ioh->location.value();
 			locations.insert(location);
+		} else {
+			cout << "BROOOO" << std::endl;
 		}
     }
 
