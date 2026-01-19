@@ -16,6 +16,7 @@
 #include "definitions.h"
 #include "otf2/OTF2_GeneralDefinitions.h"
 
+using namespace std;
 
 namespace access_pattern_detection {
 
@@ -104,16 +105,17 @@ AnalysisResult detect_local_access_pattern(IOAccesses& io_accesses)
 	uint64_t last_fpos_distance = last_x_accesses.back().fpos - last_x_accesses[1].fpos;			// used to determine whether access pattern is (still) equidistant (for STRIDED) access
 
 	PatternStatistics curr_stats{}; // keeps track of IO_Size & Ticks_spent until actual pattern is clear
-	init_stats(curr_stats, io_accesses);
+	init_stats(curr_stats, last_x_accesses);
 	AccessPattern curr_pattern = detect_access_pattern_from_3_acccesses(last_x_accesses, 0);
 	bool do_start_new_interval = false;					// interval with different accesss pattern -> track separately
 
 	// ! GOAL: single pass over all accesses (which can be a lot)
 	// TODO: output AccessPattern for exactly 3 IoAccesses
 	for(int i=3; i<io_accesses.size(); ++i) {
+		if (io_accesses[i].is_meta) // meta operations don't contribute to file access pattern
+			continue;
+
 		auto io = io_accesses[i];
-		curr_stats += PatternStatistics(io.size, io.duration); 	// added to result when `io_accesses` are checked in
-																				// TODO: for time take actual time spent in io-access !
 
 		id_into_last_x_accesses = (id_into_last_x_accesses+1) % NR_ACCESSES_THRESHOLD;
 		last_x_accesses_prev_interval_end = last_x_accesses[id_into_last_x_accesses].end_time_ns;
@@ -134,11 +136,13 @@ AnalysisResult detect_local_access_pattern(IOAccesses& io_accesses)
 			is_equi_distant = true; // no access yet
 			do_start_new_interval = false;
 		}
+		curr_stats += PatternStatistics(io.size, io.duration); 	// added to result when `io_accesses` are checked in
+																				// TODO: for time take actual time spent in io-access !
 
 		// implement Transition btw AccessPattern states
 		switch (curr_pattern) {
 			case AccessPattern::CONTIGUOUS:
-				// `CONTIGUOUS->STRIDED` not possible since if all accesses were equidistant so far, else `CONTIGUOUS->RANDOM`
+				// `CONTIGUOUS->STRIDED` possible if all accesses were equidistant so far, else `CONTIGUOUS->RANDOM`
 				// (`do_start_new_interval==true` means this is the only access analyzed so far, so let's be optimistic and see if coming
 				// I/O accesses will show that the access pattern is indeed contiguous
 				if (!do_start_new_interval && io.fpos!=next_fpos_if_contiguous) {
@@ -174,6 +178,7 @@ AnalysisResult detect_local_access_pattern(IOAccesses& io_accesses)
 					// if only the last access is not equidistant the whole interval still counts as being accessed via STRIDED pattern
 					pattern_per_timeinterval[std::pair(interval_start,io.end_time_ns)] = AccessPattern::STRIDED;
 					stats_per_pattern[AccessPattern::STRIDED] += curr_stats;
+					nr_io_access_in_current_access_pattern = 0;
 					break;
 				}
 
@@ -242,7 +247,7 @@ AnalysisResult detect_local_access_pattern(IOAccesses& io_accesses)
 
 					if (nr_io_access_in_current_access_pattern > NR_ACCESSES_THRESHOLD*2) {
 						// there were still some random accesses before -> check them in !
-						pattern_per_timeinterval[std::pair(interval_start, last_x_accesses_prev_interval_end)] = AccessPattern::RANDOM;
+						pattern_per_timeinterval[make_pair(interval_start, last_x_accesses_prev_interval_end)] = AccessPattern::RANDOM;
 						stats_per_pattern[AccessPattern::RANDOM] += curr_stats;
 					}
 				} else {
@@ -252,8 +257,8 @@ AnalysisResult detect_local_access_pattern(IOAccesses& io_accesses)
 				break;
 			}
 			case AccessPattern::NONE:
-				std::cerr << "AccessPattern::NONE should have been filtered out previously\n";
-				std::abort();  // Immediately terminates the program
+				cerr << "AccessPattern::NONE should have been filtered out previously\n";
+				abort();  // Immediately terminates the program
 				break;
 		}
 	}
@@ -261,7 +266,7 @@ AnalysisResult detect_local_access_pattern(IOAccesses& io_accesses)
 	if (nr_io_access_in_current_access_pattern>0) {
 		// check in remaining accesses
 		auto last_io = last_x_accesses[mod(id_into_last_x_accesses,NR_ACCESSES_THRESHOLD)];
-		pattern_per_timeinterval[std::make_pair(interval_start,last_io.end_time_ns)] = curr_pattern;
+		pattern_per_timeinterval[make_pair(interval_start,last_io.end_time_ns)] = curr_pattern;
 		stats_per_pattern[curr_pattern] += curr_stats;
 	}
 

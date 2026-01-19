@@ -641,7 +641,7 @@ OTF2_CallbackCode OTF2Reader::io_operation_begin_callback(OTF2_LocationRef locat
     auto* alldata              = static_cast<AllData*>(userData);
     auto* h                    = alldata->definitions.iohandles.get(handle);
 
-	assert(!h->location || h->location == locationID); // in theory `IoHandle`s should be only accessed by the same location
+	// assert(!h->location || h->location == locationID); // in theory `IoHandle`s should be only accessed by the same location
 	h->location = locationID;
     if (!h)
         return OTF2_CALLBACK_ERROR;
@@ -705,6 +705,7 @@ OTF2_CallbackCode OTF2Reader::io_operation_complete_callback(OTF2_LocationRef lo
 			&(alldata->io_data_per_location[locationID])
 		};
 
+		bool is_meta = false;
 		for(auto io_data: io_data_stats) {
 			io_data->num_operations++;
 			io_data->io_handle = handle;
@@ -713,6 +714,8 @@ OTF2_CallbackCode OTF2Reader::io_operation_complete_callback(OTF2_LocationRef lo
 				io_data->num_bytes += bytesResult;
 				io_data->transfer_time += duration;
 			} else {
+				bytesResult = 0;
+				is_meta = true;
 				io_data->nontransfer_time += duration;
 			}
 			auto region_id =  node_stack.front().node_p->function_id;
@@ -723,10 +726,11 @@ OTF2_CallbackCode OTF2Reader::io_operation_complete_callback(OTF2_LocationRef lo
 		auto start_ns = duration_cast<std::chrono::nanoseconds>(start_sec).count();
 		std::chrono::duration<double> end_sec = std::chrono::duration<double>(time-alldata->metaData.globalOffset) / alldata->metaData.timerResolution;
 		auto end_ns = duration_cast<std::chrono::nanoseconds>(start_sec).count();
-		h->io_accesses.push_back(IoAccess{static_cast<uint64_t>(start_ns),static_cast<uint64_t>(end_ns), h->fpos, bytesResult, duration});
+		h->io_accesses.push_back(IoAccess{static_cast<uint64_t>(start_ns),static_cast<uint64_t>(end_ns), h->fpos, bytesResult, duration, is_meta});
 
 		// Update `fpos`
-		h->fpos += bytesResult;
+		if (!is_meta)
+			h->fpos += bytesResult;
 		// If necessary update file-size
 		h->file_handle->fsize_mutex->lock(); // TODO: synchronize btw MPI-Processes
 		if (h->fpos > h->file_handle->fsize) {
@@ -753,7 +757,7 @@ OTF2_CallbackCode OTF2Reader::io_seek_callback ( OTF2_LocationRef    location,
 
 	if (whence == OTF2_IO_SEEK_FROM_START) {
 		ioh->fpos = offsetResult;
-	} else if (whence == OTF2_IO_SEEK_FROM_CURRENT) {
+	} if (whence == OTF2_IO_SEEK_FROM_CURRENT) {
 		// TODO: requires tracking of current file-pos of location inside file
 		auto absolute_offset = ioh->fpos + offsetResult;
 		ioh->fpos = absolute_offset;

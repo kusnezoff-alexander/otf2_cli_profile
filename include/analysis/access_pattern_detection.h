@@ -20,6 +20,7 @@ struct IoAccess {
 	uint64_t fpos;
 	uint64_t size;
 	uint64_t duration;
+	bool is_meta;
 };
 
 using Fpos = uint64_t;
@@ -102,6 +103,10 @@ struct PatternStatistics {
         PatternStatistics tmp = *this;
         tmp += other;
         return tmp;
+    }
+
+	bool operator==(const PatternStatistics& other) const {
+        return io_size==other.io_size && ticks_spent==other.ticks_spent;
     }
 
     std::string to_string() const {

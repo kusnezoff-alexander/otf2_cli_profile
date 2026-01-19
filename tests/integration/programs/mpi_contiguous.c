@@ -34,9 +34,9 @@ int main(int argc, char** argv) {
     fseek(f, 0, SEEK_SET);
     char buffer[128];
     // printf("Rank %d reading file contents:\n", rank);
-    while (fgets(buffer, sizeof(buffer), f) != NULL) {
-        printf("Rank %d read: %s", rank, buffer);
-    }
+    // while (fgets(buffer, sizeof(buffer), f) != NULL) {
+    //     printf("Rank %d read: %s", rank, buffer);
+    // }
 
     // Do another write after reading
     fprintf(f, "Rank %d appending after read\n", rank);

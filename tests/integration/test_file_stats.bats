@@ -1,5 +1,5 @@
 LOG_FILE=test_file_stats.log
-# export SCOREP_EXPERIMENT_DIRECTORY=${TEST_OUTPUT_DIR}/scorep_trace_file_access_pattern
+export SCOREP_EXPERIMENT_DIRECTORY=${TEST_OUTPUT_DIR}/scorep_trace_file_access_pattern
 export SCOREP_ENABLE_PROFILING=false        # enabled by default
 export SCOREP_ENABLE_TRACING=true           # disabled by default
 export SCOREP_IO_POSIX=true
@@ -32,15 +32,39 @@ function posix_hello_world(){
 	echo "END......" >> $LOG_DIR/$LOG_FILE
 }
 
-function mpi_hello_world(){
+function mpi_contiguous(){
 	# SETUP
-	touch $TEST_OUTPUT_DIR/mpi_hello_world.txt
+	touch $TEST_OUTPUT_DIR/mpi_contiguous.txt
 
 	echo "......" >> $LOG_DIR/$LOG_FILE
 	# Compile & Run
 	sleep 2
-	scorep --io=posix mpic++ -o $TEST_OUTPUT_DIR/mpi_hello_world.out $PROGRAMS_DIR/mpi_hello_world.c
-	mpiexec -np 2 $TEST_OUTPUT_DIR/mpi_hello_world.out
+	scorep --io=posix mpic++ -o $TEST_OUTPUT_DIR/mpi_contiguous.out $PROGRAMS_DIR/mpi_contiguous.c
+	mpirun -np 4 $TEST_OUTPUT_DIR/mpi_contiguous.out
+	echo "END......" >> $LOG_DIR/$LOG_FILE
+}
+
+function mpi_strided(){
+	# SETUP
+	touch $TEST_OUTPUT_DIR/mpi_strided.txt
+
+	echo "......" >> $LOG_DIR/$LOG_FILE
+	# Compile & Run
+	sleep 2
+	scorep --io=posix mpic++ -o $TEST_OUTPUT_DIR/mpi_strided.out $PROGRAMS_DIR/mpi_strided.c
+	mpirun -np 4 $TEST_OUTPUT_DIR/mpi_strided.out
+	echo "END......" >> $LOG_DIR/$LOG_FILE
+}
+
+function mpi_random(){
+	# SETUP
+	touch $TEST_OUTPUT_DIR/mpi_random.txt
+
+	echo "......" >> $LOG_DIR/$LOG_FILE
+	# Compile & Run
+	sleep 2
+	scorep --io=posix mpic++ -o $TEST_OUTPUT_DIR/mpi_random.out $PROGRAMS_DIR/mpi_random.c
+	mpirun -np 4 $TEST_OUTPUT_DIR/mpi_random.out
 	echo "END......" >> $LOG_DIR/$LOG_FILE
 }
 
@@ -80,9 +104,11 @@ function mpi_hello_world(){
 	# access_pattern_none=$( jq -r '.Files[] | select(.FileName | contains("posix_hello_world.txt")) | .["Ticks spent per Access Pattern"].["AccessPattern::NONE"]' ${TEST_OUTPUT_DIR}/results_posix.json)
 	# [ "$access_pattern_none" > "0" ]
 
-	run mpi_hello_world
-	# ../build/otf-profiler --json -i ${SCOREP_EXPERIMENT_DIRECTORY}/traces.otf2 -o ${TEST_OUTPUT_DIR}/results_mpi
-	../build/otf-profiler --json -i scorep*/traces.otf2 -o ${TEST_OUTPUT_DIR}/results_mpi
-	# rm -rf $SCOREP_EXPERIMENT_DIRECTORY
+	run mpi_contiguous
+	../build/otf-profiler --json -i ${SCOREP_EXPERIMENT_DIRECTORY}/traces.otf2 -o ${TEST_OUTPUT_DIR}/results_mpi_contiguous
+	run mpi_strided
+	../build/otf-profiler --json -i ${SCOREP_EXPERIMENT_DIRECTORY}/traces.otf2 -o ${TEST_OUTPUT_DIR}/results_mpi_strided
+	run mpi_random
+	../build/otf-profiler --json -i ${SCOREP_EXPERIMENT_DIRECTORY}/traces.otf2 -o ${TEST_OUTPUT_DIR}/results_mpi_random
 }
 

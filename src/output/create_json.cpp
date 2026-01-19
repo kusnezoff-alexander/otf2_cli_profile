@@ -182,7 +182,7 @@ struct FileInfo {
 			auto location = ioh->location.value();
 			locations.insert(location);
 		} else {
-			cout << "BROOOO" << std::endl;
+			cout << "WARNING: location doesn't have a value" << std::endl;
 		}
     }
 

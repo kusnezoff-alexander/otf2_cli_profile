@@ -49,7 +49,8 @@ and use `Ctrl+P` to obtain a corresponding pdf
 Make sure dependencies are installed:
 ```sh
 # RedHat
-sudo dnf install scorep otf2 rapidjson-devel # might require setting symlink `sudo ln -s /usr/lib64/libpapi.so.7.1 /usr/lib64/libpapi.so.7.2`
+sudo dnf install scorep otf2 rapidjson-devel
+# If you only have libpapi.so.7.2 (and not 7.1) installed try: `sudo ln -s /usr/lib64/libpapi.so.7.1 /usr/lib64/libpapi.so.7.2`
 
 # or with spack
 spack install otf2@3.1.1 scorep@8.4 rapidjson
