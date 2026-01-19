@@ -86,7 +86,6 @@ AnalysisResult detect_local_access_pattern(IOAccesses& io_accesses)
 		{AccessPattern::RANDOM, PatternStatistics(0,0)},
 	};
 
-
 	// these vars will be needed
 	OTF2_TimeStamp interval_start = io_accesses.front().start_time_ns;
 	OTF2_TimeStamp last_timestamp = io_accesses.back().end_time_ns;
@@ -137,7 +136,7 @@ AnalysisResult detect_local_access_pattern(IOAccesses& io_accesses)
 			do_start_new_interval = false;
 		}
 		curr_stats += PatternStatistics(io.size, io.duration); 	// added to result when `io_accesses` are checked in
-																				// TODO: for time take actual time spent in io-access !
+																// TODO: for time take actual time spent in io-access !
 
 		// implement Transition btw AccessPattern states
 		switch (curr_pattern) {
@@ -193,10 +192,14 @@ AnalysisResult detect_local_access_pattern(IOAccesses& io_accesses)
 					// leave `is_equi_distant==true` (STRIDED implies equi-distant)
 					assert(is_equi_distant);
 
+					cout << "SWITCHING" << endl;
 					if (nr_io_access_in_current_access_pattern > NR_ACCESSES_THRESHOLD*2) {
 						// there were still some strided accesses before the contiguous ones -> check them in !
 						pattern_per_timeinterval[std::pair(interval_start, last_x_accesses_prev_interval_end)] = AccessPattern::STRIDED;
-						stats_per_pattern[AccessPattern::STRIDED] += curr_stats;
+						// stats of these 3 last accesses go into newly detected pattern
+						auto stats_new = PatternStatistics(last_x_accesses[0].size+last_x_accesses[1].size+last_x_accesses[2].size, last_x_accesses[0].duration+last_x_accesses[1].duration+last_x_accesses[2].duration);
+						stats_per_pattern[AccessPattern::STRIDED] += curr_stats - stats_new;
+						curr_stats = stats_new;
 					}
 					break;
 				}
@@ -217,11 +220,13 @@ AnalysisResult detect_local_access_pattern(IOAccesses& io_accesses)
 						bool is_last_strided = i==io_accesses.size()-1; // if this is last io: also belongs to strided i guess (last acc might be limited by file size)
 						auto end_time = is_last_strided ? io.end_time_ns : io_accesses[i-1].end_time_ns;
 						pattern_per_timeinterval[std::pair(interval_start,end_time)] = AccessPattern::STRIDED;
+						curr_stats -= PatternStatistics(io.size, io.duration);
 						stats_per_pattern[AccessPattern::STRIDED] += curr_stats;
 						do_start_new_interval = true;
 
-						if (!is_last_strided)
+						if (!is_last_strided) {
 							i--; // make this last io be part of next pattern
+						}
 						continue;
 					}
 				}

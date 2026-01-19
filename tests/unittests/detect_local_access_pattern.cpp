@@ -68,25 +68,28 @@ TEST(AccessPattern, Simple) {
 TEST(AccessPattern, Combined) {
 	IOAccesses contiguous_and_strided {
 		// STRIDED
-		IoAccess {0, 3, 1000, 5},
-		IoAccess {8, 30, 2000, 1},
-		IoAccess {31, 33, 3000, 67},
-		IoAccess {100, 130, 4000, 5},
-		IoAccess {131, 132, 5000, 10},
-		IoAccess {132, 135, 6000, 5},
+		IoAccess {0, 3, 1000, 5, 3, false},
+		IoAccess {8, 30, 2000, 1, 7, false},
+		IoAccess {31, 33, 3000, 67, 3, false},
+		IoAccess {100, 130, 4000, 5, 14, false},
+		IoAccess {131, 132, 5000, 10, 27, false},
+		IoAccess {132, 135, 6000, 5, 33, false},
 
 		// CONTIGUOUS
-		IoAccess {137, 139, 0, 5},
-		IoAccess {140, 141, 5, 1},
-		IoAccess {144, 146, 6, 67},
-		IoAccess {147, 148, 73, 5},
-		IoAccess {150, 151, 78, 10},
-		IoAccess {162, 185, 88, 5},
+		IoAccess {137, 139, 0, 5, 3, false},
+		IoAccess {140, 141, 5, 1, 7, false},
+		IoAccess {144, 146, 6, 67, 3, false},
+		IoAccess {147, 148, 73, 5, 14, false},
+		IoAccess {150, 151, 78, 10, 27, false},
+		IoAccess {162, 185, 88, 5, 35, false},
 	};
 	auto result = access_pattern_detection::detect_local_access_pattern(contiguous_and_strided);
 	std::unordered_map<TimeInterval, access_pattern_detection::AccessPattern, access_pattern_detection::pair_hash> CONTIGUOUS_AND_STRIDED =
 	{ {std::pair(0, 135), access_pattern_detection::AccessPattern::STRIDED},
 	  {std::pair(137, 185), access_pattern_detection::AccessPattern::CONTIGUOUS}
 	};
+	std::unordered_map<AccessPattern, PatternStatistics> COMBINED_SHOULD_STATS = { {AccessPattern::NONE, PatternStatistics{0, 0}}, {AccessPattern::CONTIGUOUS, PatternStatistics{93, 89}},
+		{AccessPattern::STRIDED, PatternStatistics{93, 87}}, {AccessPattern::RANDOM, PatternStatistics{0, 0}} };
 	EXPECT_EQ(result.pattern_per_timeinterval, CONTIGUOUS_AND_STRIDED);
+	EXPECT_EQ(result.stats_per_pattern, COMBINED_SHOULD_STATS);
 }

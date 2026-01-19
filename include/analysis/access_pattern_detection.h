@@ -105,6 +105,18 @@ struct PatternStatistics {
         return tmp;
     }
 
+	PatternStatistics& operator-=(const PatternStatistics& other) {
+        io_size -= other.io_size;
+        ticks_spent -= other.ticks_spent;
+        return *this;
+    }
+
+    PatternStatistics operator-(const PatternStatistics& other) const {
+        PatternStatistics tmp = *this;
+        tmp -= other;
+        return tmp;
+    }
+
 	bool operator==(const PatternStatistics& other) const {
         return io_size==other.io_size && ticks_spent==other.ticks_spent;
     }
