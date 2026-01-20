@@ -1,12 +1,11 @@
 # otf2_cli_profile
 
-## a command-line tool to read OTF and OTF2 trace files and convert them to profiles
+## Analyze and Visualize performance data from OTF2 trace files
 
 ## Output formats
 
-* CUBE profile files for Scalasca and other compatible tools
+* HTML/pdf export: diagrams of recorded performance metrics, most notably file I/O access patterns
 * High-level JSON summaries of the contents of the trace
-* Graphviz visualalization tree of the callpath of the trace
 
 ## Usage
 ```
@@ -21,16 +20,7 @@ and use `Ctrl+P` to obtain a corresponding pdf
 
 ### Arguments
 
-`--cube`: produce a CUBE profile
-
 `--json`: produce a JSON summary
-
-```
---dot:  produce a DOT file (Graphviz)
-    -fi, --filter <n>: only show path, where one node took at least n% of total time
-    -t, --top <n>: only show top num nodes
-    -r, --rank <n>: only show specific rank
-```
 
 `-v n`: increase output verbosity
 
