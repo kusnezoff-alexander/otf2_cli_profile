@@ -4,7 +4,9 @@
 */
 
 #include "otf-profiler.h"
+
 #include <iostream>
+
 #include "tracereader.h"
 #include "utils.h"
 
@@ -14,6 +16,7 @@
 
 #ifdef OTFPROFILER_MPI
 #include <mpi.h>
+
 #include "reduce_data.h"
 #endif /* OTFPROFILER_MPI */
 
@@ -91,9 +94,7 @@ int main(int argc, char** argv) {
     if (reader == nullptr)
         return error();
 
-    if (!reader->initialize(alldata) ||
-        !reader->readDefinitions(alldata) ||
-        !reader->readEvents(alldata) ||
+    if (!reader->initialize(alldata) || !reader->readDefinitions(alldata) || !reader->readEvents(alldata) ||
         !reader->readStatistics(alldata))
         return error();
 
@@ -118,15 +119,32 @@ int main(int argc, char** argv) {
     }
 #endif /* OTFPROFILER_MPI */
 #ifdef HAVE_JSON
-		if (alldata.params.create_json) {
-			/* step 6.3: create CUBE output */
-			alldata.tm.start(ScopeID::JSON);
-			CreateJSON(alldata);
-			alldata.tm.stop(ScopeID::JSON);
-		}
+    if (alldata.params.create_json) {
+        /* step 6.3: create CUBE output */
+        alldata.tm.start(ScopeID::JSON);
+        CreateJSON(alldata);
+        alldata.tm.stop(ScopeID::JSON);
+
+        if (alldata.params.render_quarto) {
+            string json_fname = alldata.params.output_file_prefix + ".json";
+            string cmd_copy   = "cp " + json_fname + " results.json";
+            int    copy_ret   = system(cmd_copy.c_str());
+
+            if (copy_ret != 0) {
+                cerr << "ERROR: Failed to copy " << json_fname << " to results.json" << endl;
+            } else {
+                int render_ret = system("quarto render output.qmd --to html");
+                if (render_ret != 0) {
+                    cerr << "ERROR: Quarto rendering failed" << endl;
+                } else {
+                    cout << "Quarto HTML output created: output.html" << endl;
+                }
+            }
+        }
+    }
 #endif
 
-	alldata.tm.stop(ScopeID::TOTAL);
+    alldata.tm.stop(ScopeID::TOTAL);
 #ifdef SHOW_RESULTS
     /* step 6.3: show result data on stdout */
 

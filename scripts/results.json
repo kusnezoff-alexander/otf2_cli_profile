@@ -1,44 +1,44 @@
 {
     "Trace": {
-        "FileName": "/home/alex/Documents/Work/ra_shk/otf2_cli_profile/tests/integration/out/scorep_trace_file_access_pattern2/traces.otf2",
-        "Id": 6962573343526385661
+        "FileName": "../traces.otf2",
+        "Id": 11442119959868727458
     },
     "JobId": 0,
     "NodeCount": 1,
-    "ProcessCount": 1,
-    "ThreadCount": 1,
-    "TimerResolution": 2304527914,
+    "ProcessCount": 4,
+    "ThreadCount": 4,
+    "TimerResolution": 2304003088,
     "HardwareCounters": [],
     "Functions": {
         "COMPILER": {
-            "Count": 1,
-            "Time": 71432
+            "Count": 4,
+            "Time": 169054
         },
         "COMPUTE": {
-            "Count": 25,
-            "Time": 677978
+            "Count": 52,
+            "Time": 1957086
+        },
+        "MPI": {
+            "Count": 16,
+            "Time": 1322542226
         }
     },
     "Messages": {
         "COMPILER": {},
-        "COMPUTE": {}
+        "COMPUTE": {},
+        "MPI": {}
     },
     "CollectiveOperations": {
         "COMPILER": {},
-        "COMPUTE": {}
+        "COMPUTE": {},
+        "MPI": {}
     },
     "IOOperations": {
         "ISO C I/O": {
-            "Bytes": 78,
-            "Count": 6,
-            "MetaOperationTime": 0,
-            "TransferOperationTime": 52830
-        },
-        "POSIX I/O": {
-            "Bytes": 5,
-            "Count": 5,
-            "MetaOperationTime": 0,
-            "TransferOperationTime": 163150
+            "Bytes": 368,
+            "Count": 24,
+            "MetaOperationTime": 80160,
+            "TransferOperationTime": 50703
         }
     },
     "Files": [
@@ -51,83 +51,114 @@
             "ParentFile": null,
             "#Bytes read": 0,
             "#Bytes write": 0,
-            "Ticks spent": 0,
+            "Ticks spent on I/O": 0,
+            "Ticks spent on Metadata": 0,
             "Nr accesses from different locations": 0,
             "Ticks spent per Access Pattern": {},
             "I/O sizes per Access Pattern": {}
         },
         {
-            "FileName": "/home/alex/Documents/Work/ra_shk/otf2_cli_profile/tests/integration/out/contiguous.txt",
+            "FileName": "/home/alex/Documents/Work/ra_shk/otf2_cli_profile/tests/integration/out/rank_0_file.txt",
             "IoParadigm": [
                 "ISO C I/O",
                 "POSIX I/O"
             ],
-            "AccessModes": "W",
+            "AccessModes": "RW",
             "ParentFile": null,
             "#Bytes read": 0,
-            "#Bytes write": 48,
-            "Ticks spent": 16180,
-            "Nr accesses from different locations": 1,
-            "Ticks spent per Access Pattern": {
-                "AccessPattern::NONE": 0,
-                "AccessPattern::CONTIGUOUS": 16180,
-                "AccessPattern::STRIDED": 0,
-                "AccessPattern::RANDOM": 0
-            },
-            "I/O sizes per Access Pattern": {
-                "AccessPattern::NONE": 0,
-                "AccessPattern::CONTIGUOUS": 48,
-                "AccessPattern::STRIDED": 0,
-                "AccessPattern::RANDOM": 0
-            }
-        },
-        {
-            "FileName": "/home/alex/Documents/Work/ra_shk/otf2_cli_profile/tests/integration/out/random.txt",
-            "IoParadigm": [
-                "POSIX I/O"
-            ],
-            "AccessModes": "W",
-            "ParentFile": null,
-            "#Bytes read": 0,
-            "#Bytes write": 5,
-            "Ticks spent": 163150,
+            "#Bytes write": 92,
+            "Ticks spent on I/O": 44592,
+            "Ticks spent on Metadata": 0,
             "Nr accesses from different locations": 1,
             "Ticks spent per Access Pattern": {
                 "AccessPattern::NONE": 0,
                 "AccessPattern::CONTIGUOUS": 0,
                 "AccessPattern::STRIDED": 0,
-                "AccessPattern::RANDOM": 207400
+                "AccessPattern::RANDOM": 19918
             },
             "I/O sizes per Access Pattern": {
                 "AccessPattern::NONE": 0,
                 "AccessPattern::CONTIGUOUS": 0,
                 "AccessPattern::STRIDED": 0,
-                "AccessPattern::RANDOM": 7
+                "AccessPattern::RANDOM": 92
             }
         },
         {
-            "FileName": "/home/alex/Documents/Work/ra_shk/otf2_cli_profile/tests/integration/out/strided.txt",
+            "FileName": "/home/alex/Documents/Work/ra_shk/otf2_cli_profile/tests/integration/out/rank_1_file.txt",
             "IoParadigm": [
                 "ISO C I/O",
                 "POSIX I/O"
             ],
-            "AccessModes": "R",
+            "AccessModes": "RW",
             "ParentFile": null,
-            "#Bytes read": 30,
-            "#Bytes write": 0,
-            "Ticks spent": 36650,
+            "#Bytes read": 0,
+            "#Bytes write": 92,
+            "Ticks spent on I/O": 29926,
+            "Ticks spent on Metadata": 0,
             "Nr accesses from different locations": 1,
             "Ticks spent per Access Pattern": {
                 "AccessPattern::NONE": 0,
                 "AccessPattern::CONTIGUOUS": 0,
-                "AccessPattern::STRIDED": 36650,
-                "AccessPattern::RANDOM": 0
+                "AccessPattern::STRIDED": 0,
+                "AccessPattern::RANDOM": 10763
             },
             "I/O sizes per Access Pattern": {
                 "AccessPattern::NONE": 0,
                 "AccessPattern::CONTIGUOUS": 0,
-                "AccessPattern::STRIDED": 30,
-                "AccessPattern::RANDOM": 0
+                "AccessPattern::STRIDED": 0,
+                "AccessPattern::RANDOM": 92
+            }
+        },
+        {
+            "FileName": "/home/alex/Documents/Work/ra_shk/otf2_cli_profile/tests/integration/out/rank_2_file.txt",
+            "IoParadigm": [
+                "ISO C I/O",
+                "POSIX I/O"
+            ],
+            "AccessModes": "RW",
+            "ParentFile": null,
+            "#Bytes read": 0,
+            "#Bytes write": 92,
+            "Ticks spent on I/O": 28985,
+            "Ticks spent on Metadata": 0,
+            "Nr accesses from different locations": 1,
+            "Ticks spent per Access Pattern": {
+                "AccessPattern::NONE": 0,
+                "AccessPattern::CONTIGUOUS": 0,
+                "AccessPattern::STRIDED": 0,
+                "AccessPattern::RANDOM": 9664
+            },
+            "I/O sizes per Access Pattern": {
+                "AccessPattern::NONE": 0,
+                "AccessPattern::CONTIGUOUS": 0,
+                "AccessPattern::STRIDED": 0,
+                "AccessPattern::RANDOM": 92
+            }
+        },
+        {
+            "FileName": "/home/alex/Documents/Work/ra_shk/otf2_cli_profile/tests/integration/out/rank_3_file.txt",
+            "IoParadigm": [
+                "ISO C I/O",
+                "POSIX I/O"
+            ],
+            "AccessModes": "RW",
+            "ParentFile": null,
+            "#Bytes read": 0,
+            "#Bytes write": 92,
+            "Ticks spent on I/O": 27360,
+            "Ticks spent on Metadata": 0,
+            "Nr accesses from different locations": 1,
+            "Ticks spent per Access Pattern": {
+                "AccessPattern::NONE": 0,
+                "AccessPattern::CONTIGUOUS": 0,
+                "AccessPattern::STRIDED": 0,
+                "AccessPattern::RANDOM": 10358
+            },
+            "I/O sizes per Access Pattern": {
+                "AccessPattern::NONE": 0,
+                "AccessPattern::CONTIGUOUS": 0,
+                "AccessPattern::STRIDED": 0,
+                "AccessPattern::RANDOM": 92
             }
         },
         {
@@ -139,7 +170,8 @@
             "ParentFile": null,
             "#Bytes read": 0,
             "#Bytes write": 0,
-            "Ticks spent": 0,
+            "Ticks spent on I/O": 0,
+            "Ticks spent on Metadata": 0,
             "Nr accesses from different locations": 0,
             "Ticks spent per Access Pattern": {},
             "I/O sizes per Access Pattern": {}
@@ -153,7 +185,8 @@
             "ParentFile": null,
             "#Bytes read": 0,
             "#Bytes write": 0,
-            "Ticks spent": 0,
+            "Ticks spent on I/O": 0,
+            "Ticks spent on Metadata": 0,
             "Nr accesses from different locations": 0,
             "Ticks spent per Access Pattern": {},
             "I/O sizes per Access Pattern": {}
@@ -167,7 +200,8 @@
             "ParentFile": null,
             "#Bytes read": 0,
             "#Bytes write": 0,
-            "Ticks spent": 0,
+            "Ticks spent on I/O": 0,
+            "Ticks spent on Metadata": 0,
             "Nr accesses from different locations": 0,
             "Ticks spent per Access Pattern": {},
             "I/O sizes per Access Pattern": {}
@@ -181,7 +215,8 @@
             "ParentFile": null,
             "#Bytes read": 0,
             "#Bytes write": 0,
-            "Ticks spent": 0,
+            "Ticks spent on I/O": 0,
+            "Ticks spent on Metadata": 0,
             "Nr accesses from different locations": 0,
             "Ticks spent per Access Pattern": {},
             "I/O sizes per Access Pattern": {}
@@ -195,7 +230,8 @@
             "ParentFile": null,
             "#Bytes read": 0,
             "#Bytes write": 0,
-            "Ticks spent": 0,
+            "Ticks spent on I/O": 0,
+            "Ticks spent on Metadata": 0,
             "Nr accesses from different locations": 0,
             "Ticks spent per Access Pattern": {},
             "I/O sizes per Access Pattern": {}
@@ -209,7 +245,8 @@
             "ParentFile": null,
             "#Bytes read": 0,
             "#Bytes write": 0,
-            "Ticks spent": 0,
+            "Ticks spent on I/O": 0,
+            "Ticks spent on Metadata": 0,
             "Nr accesses from different locations": 0,
             "Ticks spent per Access Pattern": {},
             "I/O sizes per Access Pattern": {}
@@ -223,7 +260,8 @@
             "ParentFile": null,
             "#Bytes read": 0,
             "#Bytes write": 0,
-            "Ticks spent": 0,
+            "Ticks spent on I/O": 0,
+            "Ticks spent on Metadata": 0,
             "Nr accesses from different locations": 0,
             "Ticks spent per Access Pattern": {},
             "I/O sizes per Access Pattern": {}
@@ -237,31 +275,59 @@
             "ParentFile": null,
             "#Bytes read": 0,
             "#Bytes write": 0,
-            "Ticks spent": 0,
+            "Ticks spent on I/O": 0,
+            "Ticks spent on Metadata": 0,
             "Nr accesses from different locations": 0,
             "Ticks spent per Access Pattern": {},
             "I/O sizes per Access Pattern": {}
         }
     ],
+    "Locations": [
+        {
+            "Location": 0,
+            "Per time interval": {
+                "574208749-574468356": "AccessPattern::RANDOM"
+            }
+        },
+        {
+            "Location": 0,
+            "Per time interval": {
+                "574553605-574623584": "AccessPattern::RANDOM"
+            }
+        },
+        {
+            "Location": 0,
+            "Per time interval": {
+                "574516503-574576193": "AccessPattern::RANDOM"
+            }
+        },
+        {
+            "Location": 0,
+            "Per time interval": {
+                "574520930-574579809": "AccessPattern::RANDOM"
+            }
+        }
+    ],
     "Regions": [
         {
-            "RegionName": "write",
+            "RegionName": "fflushfflushfflushfflush",
             "IoParadigm": [],
             "AccessModes": "",
             "#Bytes read": 0,
-            "#Bytes write": 83,
-            "Ticks spent": 215980,
+            "#Bytes write": 368,
+            "Ticks spent on I/O": 130863,
+            "Ticks spent on Metadata": 0,
             "Top 5 Callees": [
                 {
-                    "Region name": "main",
+                    "Region name": "int main(int, char**)",
                     "Source lines": "?-?",
-                    "Nr calls": 5
+                    "Nr calls": 4
                 }
             ]
         }
     ],
-    "ParallelRegionTime": 0,
-    "SerialRegionTime": 749410,
+    "ParallelRegionTime": 1324668366,
+    "SerialRegionTime": 0,
     "TotalFunctions": 10,
-    "TotalCalls": 26
+    "TotalCalls": 72
 }

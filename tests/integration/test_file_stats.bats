@@ -32,39 +32,51 @@ function posix_hello_world(){
 	echo "END......" >> $LOG_DIR/$LOG_FILE
 }
 
-function mpi_contiguous(){
+function mpi_contiguous_local(){
 	# SETUP
-	touch $TEST_OUTPUT_DIR/mpi_contiguous.txt
+	touch $TEST_OUTPUT_DIR/mpi_contiguous_local.txt
 
 	echo "......" >> $LOG_DIR/$LOG_FILE
 	# Compile & Run
 	sleep 2
-	scorep --io=posix mpic++ -o $TEST_OUTPUT_DIR/mpi_contiguous.out $PROGRAMS_DIR/mpi_contiguous.c
-	mpirun -np 4 $TEST_OUTPUT_DIR/mpi_contiguous.out
+	scorep --io=posix mpic++ -o $TEST_OUTPUT_DIR/mpi_contiguous_local.out $PROGRAMS_DIR/mpi_contiguous_local.c
+	mpirun -np 4 $TEST_OUTPUT_DIR/mpi_contiguous_local.out
 	echo "END......" >> $LOG_DIR/$LOG_FILE
 }
 
-function mpi_strided(){
+function mpi_strided_local(){
 	# SETUP
-	touch $TEST_OUTPUT_DIR/mpi_strided.txt
+	touch $TEST_OUTPUT_DIR/mpi_strided_local.txt
 
 	echo "......" >> $LOG_DIR/$LOG_FILE
 	# Compile & Run
 	sleep 2
-	scorep --io=posix mpic++ -o $TEST_OUTPUT_DIR/mpi_strided.out $PROGRAMS_DIR/mpi_strided.c
-	mpirun -np 4 $TEST_OUTPUT_DIR/mpi_strided.out
+	scorep --io=posix mpic++ -o $TEST_OUTPUT_DIR/mpi_strided_local.out $PROGRAMS_DIR/mpi_strided_local.c
+	mpirun -np 4 $TEST_OUTPUT_DIR/mpi_strided_local.out
 	echo "END......" >> $LOG_DIR/$LOG_FILE
 }
 
-function mpi_random(){
+function mpi_random_local(){
 	# SETUP
-	touch $TEST_OUTPUT_DIR/mpi_random.txt
+	touch $TEST_OUTPUT_DIR/mpi_random_local.txt
 
 	echo "......" >> $LOG_DIR/$LOG_FILE
 	# Compile & Run
 	sleep 2
-	scorep --io=posix mpic++ -o $TEST_OUTPUT_DIR/mpi_random.out $PROGRAMS_DIR/mpi_random.c
-	mpirun -np 4 $TEST_OUTPUT_DIR/mpi_random.out
+	scorep --io=posix mpic++ -o $TEST_OUTPUT_DIR/mpi_random_local.out $PROGRAMS_DIR/mpi_random_local.c
+	mpirun -np 4 $TEST_OUTPUT_DIR/mpi_random_local.out
+	echo "END......" >> $LOG_DIR/$LOG_FILE
+}
+
+function mpi_patterns_single_file(){
+	# SETUP
+	touch $TEST_OUTPUT_DIR/mpi_patterns_single_file.txt
+
+	echo "......" >> $LOG_DIR/$LOG_FILE
+	# Compile & Run
+	sleep 2
+	scorep --io=posix mpic++ -o $TEST_OUTPUT_DIR/mpi_patterns_single_file.out $PROGRAMS_DIR/mpi_patterns_single_file.c
+	mpirun -np 4 $TEST_OUTPUT_DIR/mpi_patterns_single_file.out
 	echo "END......" >> $LOG_DIR/$LOG_FILE
 }
 
@@ -104,11 +116,13 @@ function mpi_random(){
 	# access_pattern_none=$( jq -r '.Files[] | select(.FileName | contains("posix_hello_world.txt")) | .["Ticks spent per Access Pattern"].["AccessPattern::NONE"]' ${TEST_OUTPUT_DIR}/results_posix.json)
 	# [ "$access_pattern_none" > "0" ]
 
-	run mpi_contiguous
-	../build/otf-profiler --json -i ${SCOREP_EXPERIMENT_DIRECTORY}/traces.otf2 -o ${TEST_OUTPUT_DIR}/results_mpi_contiguous
-	run mpi_strided
-	../build/otf-profiler --json -i ${SCOREP_EXPERIMENT_DIRECTORY}/traces.otf2 -o ${TEST_OUTPUT_DIR}/results_mpi_strided
-	run mpi_random
-	../build/otf-profiler --json -i ${SCOREP_EXPERIMENT_DIRECTORY}/traces.otf2 -o ${TEST_OUTPUT_DIR}/results_mpi_random
+	run mpi_contiguous_local
+	../build/otf-profiler --json -i ${SCOREP_EXPERIMENT_DIRECTORY}/traces.otf2 -o ${TEST_OUTPUT_DIR}/results_mpi_contiguous_local
+	run mpi_strided_local
+	../build/otf-profiler --json -i ${SCOREP_EXPERIMENT_DIRECTORY}/traces.otf2 -o ${TEST_OUTPUT_DIR}/results_mpi_strided_local
+	run mpi_random_local
+	../build/otf-profiler --json -i ${SCOREP_EXPERIMENT_DIRECTORY}/traces.otf2 -o ${TEST_OUTPUT_DIR}/results_mpi_random_local
+	run mpi_patterns_single_file
+	../build/otf-profiler --json -i ${SCOREP_EXPERIMENT_DIRECTORY}/traces.otf2 -o ${TEST_OUTPUT_DIR}/results_mpi_patterns_single_file
 }
 

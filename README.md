@@ -45,6 +45,11 @@ sudo dnf install scorep otf2 rapidjson-devel
 # or with spack
 spack install otf2@3.1.1 scorep@8.4 rapidjson
 
+# On HPC systems with module support
+ml load mpi
+source /home/alex/.local/bin/spack/share/spack/setup-env.sh
+spack load scorep@8.4
+
 # or your preferred way..
 ```
 

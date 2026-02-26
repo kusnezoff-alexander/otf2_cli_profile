@@ -31,7 +31,7 @@ You then surround the function call of the new module like this:
 Example for CUBE:
 */
 
-enum class ScopeID : uint8_t { TOTAL, COLLECT, REDUCE, CUBE, JSON ,DOT};
+enum class ScopeID : uint8_t { TOTAL, COLLECT, REDUCE, CUBE, JSON, DOT };
 
 class TimeMeasurement {
    public:
@@ -102,16 +102,17 @@ struct Params {
     // bool        logaxis            = true;
     uint8_t verbose_level = 0;
     // bool        read_from_stats    = false;
-    double       node_min_ratio     = 0;
+    double      node_min_ratio     = 0;
     int32_t     rank               = -1;
     uint32_t    top_nodes          = 0;
     bool        read_metrics       = true;  // counter
     bool        output_type_set    = false;
     bool        create_cube        = false;
     bool        create_json        = false;
-    bool        create_io_csv	   = false;
+    bool        render_quarto      = false;
+    bool        create_io_csv      = false;
     bool        create_dot         = false;
-    bool        data_dump           = false;
+    bool        data_dump          = false;
     bool        summarize_it       = false;  // TODO added for testing
     std::string input_file_name    = "";
     std::string input_file_prefix  = "";
@@ -135,9 +136,14 @@ struct Params {
                           << std::endl
                           << "      --cube              generates CUBE xml profile" << std::endl
                           << "      --json              generates json ouptut file" << std::endl
-                          << "      --io 				collect detailed metrics about I/O, only supported with OTF2 (WIP)" << std::endl
+                          << "      --render-quarto     render json output with Quarto to HTML" << std::endl
+                          << "      --io 				collect detailed metrics about I/O, only "
+                             "supported with OTF2 (WIP)"
+                          << std::endl
                           << "      --dot               generates dot file for drawing graphs" << std::endl
-                          << "        -fi, --filter <percent>    only show path, where a node took at least num \% of total time" << std::endl
+                          << "        -fi, --filter <percent>    only show path, where a node took at least num \% of "
+                             "total time"
+                          << std::endl
                           << "        -t, --top <n>     only show top num nodes" << std::endl
                           << "        -r, --rank <n>    only show specific rank" << std::endl
                           << "      --datadump          dump all data into json file" << std::endl
@@ -171,11 +177,16 @@ struct Params {
                 create_cube     = true;
                 output_type_set = true;
             } else if (arguments[i] == "--json") {
-                create_json = true;
+                create_json     = true;
+                output_type_set = true;
+
+            } else if (arguments[i] == "--render-quarto") {
+                render_quarto   = true;
+                create_json     = true;
                 output_type_set = true;
 
             } else if (arguments[i] == "--dot") {
-                create_dot = true;
+                create_dot      = true;
                 output_type_set = true;
 
             } else if (arguments[i] == "--filter" || arguments[i] == "-fi") {
@@ -193,15 +204,15 @@ struct Params {
                 rank = value;
                 ++i;
             } else if (arguments[i] == "--top" || arguments[i] == "-t") {
-            auto value = checkNextValue(arguments, i);
-            if (value < 0)
-                return false;
+                auto value = checkNextValue(arguments, i);
+                if (value < 0)
+                    return false;
 
-            top_nodes = value;
-            ++i;
-            create_dot = true;
+                top_nodes = value;
+                ++i;
+                create_dot = true;
             } else if (arguments[i] == "--datadump") {
-                data_dump = true;
+                data_dump       = true;
                 output_type_set = true;
             } else if (arguments[i] == "-i") {
                 if (!checkNext(arguments, i))
