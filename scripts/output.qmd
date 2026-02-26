@@ -10,457 +10,173 @@ format:
     toc-depth: 2
 ---
 
-```{ojs}
-// === Helper Functions
+```{r, include=FALSE}
+library(jsonlite)
 
-// Load results from JSON
-results = FileAttachment("results.json").json({ typed: true })
+results <- fromJSON("results.json")
 
-ticks_per_second = results.TimerResolution
+ticks_per_second <- results$TimerResolution
 
-// Function to format bytes
-function formatBytes(bytes) {
-  if (bytes >= 1e15) return (bytes / 1e15).toFixed(2) + " PB";
-  if (bytes >= 1e12) return (bytes / 1e12).toFixed(2) + " TB";
-  if (bytes >= 1e9)  return (bytes / 1e9).toFixed(2) + " GB";
-  if (bytes >= 1e6)  return (bytes / 1e6).toFixed(2) + " MB";
-  if (bytes >= 1e3)  return (bytes / 1e3).toFixed(2) + " KB";
-  return bytes + " B";
+format_bytes <- function(bytes) {
+  if (is.na(bytes)) return("0 B")
+  bytes <- as.numeric(bytes)
+  if (bytes >= 1e15) return(sprintf("%.2f PB", bytes / 1e15))
+  if (bytes >= 1e12) return(sprintf("%.2f TB", bytes / 1e12))
+  if (bytes >= 1e9)  return(sprintf("%.2f GB", bytes / 1e9))
+  if (bytes >= 1e6)  return(sprintf("%.2f MB", bytes / 1e6))
+  if (bytes >= 1e3)  return(sprintf("%.2f KB", bytes / 1e3))
+  return(sprintf("%d B", bytes))
 }
 
-// Function to format time
-function formatTime(seconds) {
-  if (seconds >= 3600) return (seconds / 3600).toFixed(2) + " h";
-  if (seconds >= 60)   return (seconds / 60).toFixed(2) + " min";
-  if (seconds >= 1)    return seconds.toFixed(2) + " s";
-  if (seconds >= 1e-3) return (seconds * 1e3).toFixed(2) + " ms";
-  if (seconds >= 1e-6) return (seconds * 1e6).toFixed(2) + " µs";
-  return (seconds * 1e9).toFixed(2) + " ns";
-}
-
-// Short format for axis labels
-function formatBytesAxis(bytes) {
-  if (bytes >= 1e12) return (bytes / 1e12).toFixed(1) + " TB";
-  if (bytes >= 1e9)  return (bytes / 1e9).toFixed(1) + " GB";
-  if (bytes >= 1e6)  return (bytes / 1e6).toFixed(1) + " MB";
-  if (bytes >= 1e3)  return (bytes / 1e3).toFixed(1) + " KB";
-  return bytes + " B";
-}
-
-function formatTimeAxis(seconds) {
-  if (seconds >= 3600) return (seconds / 3600).toFixed(1) + " h";
-  if (seconds >= 60)   return (seconds / 60).toFixed(1) + " min";
-  if (seconds >= 1)    return seconds.toFixed(1) + " s";
-  if (seconds >= 1e-3) return (seconds * 1e3).toFixed(1) + " ms";
-  if (seconds >= 1e-6) return (seconds * 1e6).toFixed(1) + " µs";
-  return (seconds * 1e9).toFixed(1) + " ns";
+format_time <- function(ticks) {
+  if (is.na(ticks)) return("0 s")
+  ticks <- as.numeric(ticks)
+  seconds <- ticks / ticks_per_second
+  if (seconds >= 3600) return(sprintf("%.2f h", seconds / 3600))
+  if (seconds >= 60)   return(sprintf("%.2f min", seconds / 60))
+  if (seconds >= 1)    return(sprintf("%.2f s", seconds))
+  if (seconds >= 1e-3) return(sprintf("%.2f ms", seconds * 1e3))
+  if (seconds >= 1e-6) return(sprintf("%.2f µs", seconds * 1e6))
+  return(sprintf("%.2f ns", seconds * 1e9))
 }
 ```
 
-```{ojs}
-// === Styling
-html`<style>
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  }
-  .card {
-    background: #f8f9fa;
-    border-radius: 8px;
-    padding: 1rem;
-    margin: 0.5rem 0;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  }
-  .metric-value {
-    font-size: 1.5rem;
-    font-weight: bold;
-    color: #2c3e50;
-  }
-  .metric-label {
-    font-size: 0.875rem;
-    color: #6c757d;
-  }
-  figcaption {
-    font-size: 0.85rem;
-    font-style: italic;
-    color: #666;
-    margin-top: 6px;
-    text-align: center;
-  }
-  h2 {
-    color: #2c3e50;
-    border-bottom: 2px solid #3498db;
-    padding-bottom: 0.5rem;
-    margin-top: 2rem;
-  }
-  h3 {
-    color: #34495e;
-    margin-top: 1.5rem;
-  }
-</style>`
+```{r, include=FALSE}
+# Compute summary metrics
+io_ops <- results$IOOperations
+total_bytes <- sum(sapply(io_ops, function(x) ifelse(is.null(x$Bytes), 0, x$Bytes)), na.rm = TRUE)
+total_time <- sum(sapply(io_ops, function(x) {
+  meta <- ifelse(is.null(x$MetaOperationTime), 0, x$MetaOperationTime)
+  trans <- ifelse(is.null(x$TransferOperationTime), 0, x$TransferOperationTime)
+  (meta + trans) / ticks_per_second
+}), na.rm = TRUE)
+total_ops <- sum(sapply(io_ops, function(x) ifelse(is.null(x$Count), 0, x$Count)), na.rm = TRUE)
+num_files <- nrow(results$Files)
 ```
 
 ## Overview
 
-```{ojs}
-// Compute summary metrics
-totalBytes = Object.values(results.IOOperations).reduce((sum, op) => sum + (op.Bytes || 0), 0)
-totalTime = Object.values(results.IOOperations).reduce((sum, op) => sum + ((op.MetaOperationTime || 0) + (op.TransferOperationTime || 0)), 0) / ticks_per_second
-totalOps = Object.values(results.IOOperations).reduce((sum, op) => sum + (op.Count || 0), 0)
-numFiles = results.Files ? results.Files.length : 0
+**Total I/O:** `r format_bytes(total_bytes)` | **Total I/O Time:** `r format_time(total_time * ticks_per_second)` | **I/O Operations:** `r total_ops` | **Files:** `r num_files`
 
-// Display metrics in a row
-html`<div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin: 1rem 0;">
-  <div class="card">
-    <div class="metric-value">${formatBytes(totalBytes)}</div>
-    <div class="metric-label">Total I/O</div>
-  </div>
-  <div class="card">
-    <div class="metric-value">${formatTime(totalTime)}</div>
-    <div class="metric-label">Total I/O Time</div>
-  </div>
-  <div class="card">
-    <div class="metric-value">${totalOps.toLocaleString()}</div>
-    <div class="metric-label">I/O Operations</div>
-  </div>
-  <div class="card">
-    <div class="metric-value">${numFiles}</div>
-    <div class="metric-label">Files Accessed</div>
-  </div>
-</div>`
-```
-
-**Trace Info:** `${results.Trace ? results.Trace.FileName : 'N/A'}` | **Processes:** `${results.ProcessCount || 0}` | **Timer Resolution:** `${(results.TimerResolution / 1e6).toFixed(2)} ms`
+**Trace:** `r results$Trace$FileName` | **Processes:** `r results$ProcessCount` | **Timer Resolution:** `r sprintf("%.2f ms", results$TimerResolution / 1e6)`
 
 ## I/O by Paradigm
 
-```{ojs}
-// Extract IOOperations by paradigm
-ioData = Object.entries(results.IOOperations).map(([paradigm, ops]) => ({
-  paradigm,
-  bytes: ops.Bytes || 0,
-  metaTime: (ops.MetaOperationTime || 0) / ticks_per_second,
-  transferTime: (ops.TransferOperationTime || 0) / ticks_per_second,
-  count: ops.Count || 0
-}))
+```{r, fig.width=10, fig.height=5}
+# Prepare paradigm data
+paradigms <- names(io_ops)
+bytes_data <- sapply(io_ops, function(x) ifelse(is.null(x$Bytes), 0, x$Bytes))
+time_data <- sapply(io_ops, function(x) {
+  meta <- ifelse(is.null(x$MetaOperationTime), 0, x$MetaOperationTime)
+  trans <- ifelse(is.null(x$TransferOperationTime), 0, x$TransferOperationTime)
+  (meta + trans) / ticks_per_second
+})
 
-color = d3.scaleOrdinal(d3.schemeTableau10)
+par_df <- data.frame(
+  Paradigm = paradigms,
+  Bytes = bytes_data,
+  Time = time_data,
+  stringsAsFactors = FALSE
+)
+
+# Plot bytes by paradigm
+par_df$Paradigm <- factor(par_df$Paradigm, levels = par_df$Paradigm[order(par_df$Bytes)])
+barplot(par_df$Bytes, names.arg = par_df$Paradigm, horiz = TRUE, 
+        xlab = "Bytes", main = "Total I/O by Paradigm",
+        col = rainbow(length(par_df$Paradigm)))
 ```
 
-### I/O Volume by Paradigm
-
-```{ojs}
-Plot.plot({
-  caption: "Total bytes written/read per I/O paradigm",
-  marginLeft: 100,
-  y: { label: null },
-  x: { label: "Bytes", tickFormat: formatBytesAxis },
-  color: { legend: true },
-  marks: [
-    Plot.barX(ioData, {
-      y: "paradigm", 
-      x: "bytes", 
-      fill: d => color(d.paradigm),
-      sort: { y: "x", reverse: true }
-    })
-  ]
-})
-```
-
-### I/O Time by Paradigm
-
-```{ojs}
-Plot.plot({
-  caption: "Time spent on I/O operations per paradigm (Transfer + Metadata)",
-  marginLeft: 100,
-  y: { label: null },
-  x: { label: "Time", tickFormat: formatTimeAxis },
-  color: { legend: true },
-  marks: [
-    Plot.barX(ioData, {
-      y: "paradigm", 
-      x: d => d.metaTime + d.transferTime, 
-      fill: d => color(d.paradigm),
-      sort: { y: "x", reverse: true }
-    })
-  ]
-})
+```{r, fig.width=10, fig.height=5}
+# Plot time by paradigm
+par_df$Paradigm <- factor(par_df$Paradigm, levels = par_df$Paradigm[order(par_df$Time)])
+barplot(par_df$Time, names.arg = par_df$Paradigm, horiz = TRUE,
+        xlab = "Time", main = "I/O Time by Paradigm",
+        col = rainbow(length(par_df$Paradigm)))
 ```
 
 ## Local Access Patterns
 
-*Analysis of I/O access patterns detected per file*
+```{r, fig.width=10, fig.height=6}
+# Aggregate access pattern data from data.frame
+ap_ticks <- results$Files$`Ticks spent per Access Pattern`
+ap_bytes <- results$Files$`I/O sizes per Access Pattern`
 
-```{ojs}
-// Aggregate access pattern data across all files
-accessPatternData = (results.Files || []).reduce((acc, file) => {
-  const ticks = file["Ticks spent per Access Pattern"] || {};
-  const ioSizes = file["I/O sizes per Access Pattern"] || {};
-  
-  Object.entries(ticks).forEach(([pattern, val]) => {
-    if (!(pattern in acc)) acc[pattern] = { ticks: 0, bytes: 0 };
-    acc[pattern].ticks += (val || 0);
-    acc[pattern].bytes += (ioSizes[pattern] || 0);
-  });
-  return acc;
-}, {});
+# Sum across all files
+total_ticks <- colSums(ap_ticks, na.rm = TRUE)
+total_bytes_ap <- colSums(ap_bytes, na.rm = TRUE)
 
-// Convert to array
-accessPatternArray = Object.entries(accessPatternData).map(([pattern, val]) => ({
-  pattern: pattern.replace(/^AccessPattern::/, ""),
-  ticks: val.ticks,
-  bytes: val.bytes,
-  time: val.ticks / ticks_per_second
-}));
+patterns <- gsub("AccessPattern::", "", names(total_ticks))
+ap_df <- data.frame(
+  Pattern = patterns,
+  Ticks = as.numeric(total_ticks),
+  Bytes = as.numeric(total_bytes_ap),
+  Time = as.numeric(total_ticks) / ticks_per_second,
+  stringsAsFactors = FALSE
+)
+ap_df <- ap_df[ap_df$Bytes > 0 | ap_df$Time > 0, ]
 
-// Remove empty patterns
-meaningfulPatterns = accessPatternArray.filter(d => d.bytes > 0 || d.time > 0)
+# Plot access pattern distribution
+if (nrow(ap_df) > 0) {
+  ap_df$Pattern <- factor(ap_df$Pattern, levels = ap_df$Pattern[order(ap_df$Time)])
+  barplot(ap_df$Time, names.arg = ap_df$Pattern, horiz = TRUE,
+          xlab = "Time", main = "I/O Time by Access Pattern",
+          col = rainbow(length(ap_df$Pattern)))
+}
 ```
 
-### Access Pattern Distribution
-
-```{ojs}
-Plot.plot({
-  caption: "I/O time distribution by access pattern",
-  marginLeft: 80,
-  y: { label: null },
-  x: { label: "Time (seconds)", tickFormat: formatTimeAxis },
-  color: { legend: true },
-  marks: [
-    Plot.barX(meaningfulPatterns, {
-      y: "pattern", 
-      x: "time", 
-      fill: d => color(d.pattern),
-      sort: { y: "x", reverse: true }
-    })
-  ]
-})
-```
-
-### Access Pattern vs I/O Size
-
-```{ojs}
-Plot.plot({
-  caption: "I/O sizes by access pattern",
-  marginLeft: 80,
-  y: { label: null },
-  x: { label: "Bytes", tickFormat: formatBytesAxis },
-  color: { legend: true },
-  marks: [
-    Plot.barX(meaningfulPatterns, {
-      y: "pattern", 
-      x: "bytes", 
-      fill: d => color(d.pattern),
-      sort: { y: "x", reverse: true }
-    })
-  ]
-})
+```{r, fig.width=10, fig.height=6}
+# Plot bytes by access pattern
+if (nrow(ap_df) > 0) {
+  ap_df$Pattern <- factor(ap_df$Pattern, levels = ap_df$Pattern[order(ap_df$Bytes)])
+  barplot(ap_df$Bytes, names.arg = ap_df$Pattern, horiz = TRUE,
+          xlab = "Bytes", main = "I/O Size by Access Pattern",
+          col = rainbow(length(ap_df$Pattern)))
+}
 ```
 
 ## Global Access Pattern Analysis
 
-*Approximation of global access patterns by aggregating across all MPI ranks*
+```{r, fig.width=10, fig.height=5}
+# Aggregate by number of locations
+loc_agg <- aggregate(
+  cbind(`#Bytes read`, `#Bytes write`) ~ `Nr accesses from different locations`, 
+  data = results$Files, 
+  FUN = sum, 
+  na.rm = TRUE
+)
+loc_agg$TotalBytes <- loc_agg$`#Bytes read` + loc_agg$`#Bytes write`
+loc_agg$Label <- paste0(loc_agg$`Nr accesses from different locations`, 
+                        ifelse(loc_agg$`Nr accesses from different locations` == 1, " rank", " ranks"))
+loc_agg <- loc_agg[order(-loc_agg$TotalBytes), ]
 
-```{ojs}
-// Aggregate by number of accessing locations (ranks)
-byLocationCount = (results.Files || []).reduce((acc, file) => {
-  const nrLocs = file["Nr accesses from different locations"] || 0;
-  const ticks = file["Ticks spent per Access Pattern"] || {};
-  const ioSizes = file["I/O sizes per Access Pattern"] || {};
-  
-  if (!acc[nrLocs]) acc[nrLocs] = { 
-    locations: nrLocs, 
-    files: 0, 
-    bytes: 0, 
-    time: 0,
-    patterns: { CONTIGUOUS: 0, STRIDED: 0, RANDOM: 0, NONE: 0 }
-  };
-  acc[nrLocs].files += 1;
-  acc[nrLocs].bytes += (file["#Bytes read"] || 0) + (file["#Bytes write"] || 0);
-  acc[nrLocs].time += ((file["Ticks spent on I/O"] || 0) + (file["Ticks spent on Metadata"] || 0)) / ticks_per_second;
-  
-  Object.entries(ticks).forEach(([pat, t]) => {
-    const patName = pat.replace(/^AccessPattern::/, "");
-    acc[nrLocs].patterns[patName] = (acc[nrLocs].patterns[patName] || 0) + (t || 0);
-  });
-  return acc;
-}, {});
-
-locationArray = Object.values(byLocationCount).sort((a, b) => b.bytes - a.bytes)
-```
-
-### I/O by Number of Accessing Ranks
-
-```{ojs}
-Plot.plot({
-  caption: "Total I/O grouped by number of MPI ranks accessing the file",
-  marginLeft: 80,
-  y: { label: null },
-  x: { label: "Bytes", tickFormat: formatBytesAxis },
-  marks: [
-    Plot.barX(locationArray, {
-      y: d => d.locations + (d.locations === 1 ? " rank" : " ranks"), 
-      x: "bytes", 
-      fill: "#3498db",
-      sort: { y: "x", reverse: true }
-    })
-  ]
-})
-```
-
-### Dominant Access Pattern per File Count
-
-```{ojs}
-// Find dominant pattern per file
-filePatternDominance = (results.Files || []).map(file => {
-  const ticks = file["Ticks spent per Access Pattern"] || {};
-  const ioSizes = file["I/O sizes per Access Pattern"] || {};
-  
-  // Find pattern with most bytes
-  let dominant = "NONE";
-  let maxBytes = 0;
-  Object.entries(ioSizes).forEach(([pat, bytes]) => {
-    if ((bytes || 0) > maxBytes) {
-      maxBytes = bytes;
-      dominant = pat.replace(/^AccessPattern::/, "");
-    }
-  });
-  return {
-    file: (file.FileName || "").split("/").pop(),
-    dominant,
-    bytes: maxBytes,
-    locations: file["Nr accesses from different locations"] || 0
-  };
-}).filter(f => f.bytes > 0);
-
-// Count files by dominant pattern
-patternFileCounts = filePatternDominance.reduce((acc, f) => {
-  acc[f.dominant] = (acc[f.dominant] || 0) + 1;
-  return acc;
-}, {});
-
-patternCountArray = Object.entries(patternFileCounts).map(([pat, count]) => ({
-  pattern: pat,
-  count
-})).sort((a, b) => b.count - a.count);
-
-Plot.plot({
-  caption: "Number of files by dominant access pattern",
-  marginLeft: 80,
-  y: { label: null },
-  x: { label: "File Count" },
-  marks: [
-    Plot.barX(patternCountArray, {
-      y: "pattern", 
-      x: "count", 
-      fill: d => color(d.pattern),
-      sort: { y: "x", reverse: true }
-    })
-  ]
-})
+# Plot by location count
+barplot(loc_agg$TotalBytes, names.arg = loc_agg$Label, horiz = TRUE,
+        xlab = "Bytes", main = "I/O by Number of Accessing Ranks",
+        col = "#3498db")
 ```
 
 ## Top Files
 
-### Top 10 Files by I/O Size
+```{r}
+# Top files by I/O
+top_files <- results$Files
+top_files$Total <- top_files$`#Bytes read` + top_files$`#Bytes write`
+top_files$Time <- (top_files$`Ticks spent on I/O` + top_files$`Ticks spent on Metadata`) / ticks_per_second
+top_files <- top_files[order(-top_files$Total), ][1:10, ]
+top_files$FileName <- gsub(".*/", "", top_files$FileName)
 
-```{ojs}
-// Helper: find common prefix
-function commonPrefix(strings) {
-  if (!strings.length) return "";
-  let prefix = strings[0];
-  for (let str of strings.slice(1)) {
-    let i = 0;
-    while (i < prefix.length && prefix[i] === str[i]) i++;
-    prefix = prefix.slice(0, i);
-    if (!prefix) break;
-  }
-  return prefix;
+# Print as markdown table
+cat("| File | Read | Write | Time | Paradigm |\n")
+cat("|------|------|-------|------|----------|\n")
+for (i in 1:nrow(top_files)) {
+  paradigm <- paste(top_files$IoParadigm[[i]], collapse = ", ")
+  cat(sprintf("| %s | %s | %s | %s | %s |\n",
+              top_files$FileName[i],
+              format_bytes(top_files$`#Bytes read`[i]),
+              format_bytes(top_files$`#Bytes write`[i]),
+              format_time(top_files$Time[i] * ticks_per_second),
+              paradigm))
 }
-
-function getBasePath(path) {
-  const lastSlash = path.lastIndexOf("/");
-  return lastSlash !== -1 ? path.slice(0, lastSlash + 1) : "";
-}
-```
-
-```{ojs}
-// Top files by total I/O (read + write)
-topFiles = (results.Files || [])
-  .filter(f => f["#Bytes read"] > 0 || f["#Bytes write"] > 0)
-  .map(f => ({
-    ...f,
-    totalBytes: (f["#Bytes read"] || 0) + (f["#Bytes write"] || 0),
-    totalTime: ((f["Ticks spent on I/O"] || 0) + (f["Ticks spent on Metadata"] || 0)) / ticks_per_second
-  }))
-  .sort((a, b) => b.totalBytes - a.totalBytes)
-  .slice(0, 10);
-
-// Strip common prefix
-commonPrefixStr = topFiles.length > 1 
-  ? commonPrefix(topFiles.map(f => f.FileName))
-  : getBasePath(topFiles[0]?.FileName || "");
-
-Inputs.table(
-  topFiles.map(f => ({
-    File: f.FileName.replace(commonPrefixStr, ""),
-    "Read": formatBytes(f["#Bytes read"] || 0),
-    "Write": formatBytes(f["#Bytes write"] || 0),
-    "Time": formatTime(f.totalTime),
-    "Paradigm": (f.IoParadigm || []).join(", ")
-  })),
-  { columns: ["File", "Read", "Write", "Time", "Paradigm"] }
-)
-```
-
-### Top 10 Files by I/O Time
-
-```{ojs}
-topTimeFiles = (results.Files || [])
-  .filter(f => (f["Ticks spent on I/O"] || 0) + (f["Ticks spent on Metadata"] || 0) > 0)
-  .map(f => ({
-    ...f,
-    totalTime: ((f["Ticks spent on I/O"] || 0) + (f["Ticks spent on Metadata"] || 0)) / ticks_per_second
-  }))
-  .sort((a, b) => b.totalTime - a.totalTime)
-  .slice(0, 10);
-
-commonTimePrefix = topTimeFiles.length > 1
-  ? commonPrefix(topTimeFiles.map(f => f.FileName))
-  : getBasePath(topTimeFiles[0]?.FileName || "");
-
-Inputs.table(
-  topTimeFiles.map(f => ({
-    File: f.FileName.replace(commonTimePrefix, ""),
-    "I/O Time": formatTime(f.totalTime),
-    "Read": formatBytes(f["#Bytes read"] || 0),
-    "Write": formatBytes(f["#Bytes write"] || 0)
-  })),
-  { columns: ["File", "I/O Time", "Read", "Write"] }
-)
-```
-
-## Per-File Access Patterns
-
-*Detailed breakdown of access patterns for each file*
-
-```{ojs}
-// Create detailed file table with access patterns
-fileDetails = (results.Files || [])
-  .filter(f => Object.keys(f["Ticks spent per Access Pattern"] || {}).length > 0)
-  .map(f => {
-    const patterns = f["Ticks spent per Access Pattern"] || {};
-    const sizes = f["I/O sizes per Access Pattern"] || {};
-    return {
-      File: f.FileName.split("/").pop(),
-      "Total I/O": formatBytes((f["#Bytes read"] || 0) + (f["#Bytes write"] || 0)),
-      "CONTIGUOUS": formatBytes(sizes["AccessPattern::CONTIGUOUS"] || 0),
-      "STRIDED": formatBytes(sizes["AccessPattern::STRIDED"] || 0),
-      "RANDOM": formatBytes(sizes["AccessPattern::RANDOM"] || 0),
-      "NONE": formatBytes(sizes["AccessPattern::NONE"] || 0)
-    };
-  });
-
-Inputs.table(fileDetails, { rows: 15 })
 ```
 
 ---
