@@ -256,6 +256,109 @@ Plot.plot({
 })
 ```
 
+## Global Access Pattern Analysis
+
+*Approximation of global access patterns by aggregating across all MPI ranks*
+
+```{ojs}
+// Aggregate by number of accessing locations (ranks)
+byLocationCount = (results.Files || []).reduce((acc, file) => {
+  const nrLocs = file["Nr accesses from different locations"] || 0;
+  const ticks = file["Ticks spent per Access Pattern"] || {};
+  const ioSizes = file["I/O sizes per Access Pattern"] || {};
+  
+  if (!acc[nrLocs]) acc[nrLocs] = { 
+    locations: nrLocs, 
+    files: 0, 
+    bytes: 0, 
+    time: 0,
+    patterns: { CONTIGUOUS: 0, STRIDED: 0, RANDOM: 0, NONE: 0 }
+  };
+  acc[nrLocs].files += 1;
+  acc[nrLocs].bytes += (file["#Bytes read"] || 0) + (file["#Bytes write"] || 0);
+  acc[nrLocs].time += ((file["Ticks spent on I/O"] || 0) + (file["Ticks spent on Metadata"] || 0)) / ticks_per_second;
+  
+  Object.entries(ticks).forEach(([pat, t]) => {
+    const patName = pat.replace(/^AccessPattern::/, "");
+    acc[nrLocs].patterns[patName] = (acc[nrLocs].patterns[patName] || 0) + (t || 0);
+  });
+  return acc;
+}, {});
+
+locationArray = Object.values(byLocationCount).sort((a, b) => b.bytes - a.bytes)
+```
+
+### I/O by Number of Accessing Ranks
+
+```{ojs}
+Plot.plot({
+  caption: "Total I/O grouped by number of MPI ranks accessing the file",
+  marginLeft: 80,
+  y: { label: null },
+  x: { label: "Bytes", tickFormat: formatBytesAxis },
+  marks: [
+    Plot.barX(locationArray, {
+      y: d => d.locations + (d.locations === 1 ? " rank" : " ranks"), 
+      x: "bytes", 
+      fill: "#3498db",
+      sort: { y: "x", reverse: true }
+    })
+  ]
+})
+```
+
+### Dominant Access Pattern per File Count
+
+```{ojs}
+// Find dominant pattern per file
+filePatternDominance = (results.Files || []).map(file => {
+  const ticks = file["Ticks spent per Access Pattern"] || {};
+  const ioSizes = file["I/O sizes per Access Pattern"] || {};
+  
+  // Find pattern with most bytes
+  let dominant = "NONE";
+  let maxBytes = 0;
+  Object.entries(ioSizes).forEach(([pat, bytes]) => {
+    if ((bytes || 0) > maxBytes) {
+      maxBytes = bytes;
+      dominant = pat.replace(/^AccessPattern::/, "");
+    }
+  });
+  return {
+    file: (file.FileName || "").split("/").pop(),
+    dominant,
+    bytes: maxBytes,
+    locations: file["Nr accesses from different locations"] || 0
+  };
+}).filter(f => f.bytes > 0);
+
+// Count files by dominant pattern
+patternFileCounts = filePatternDominance.reduce((acc, f) => {
+  acc[f.dominant] = (acc[f.dominant] || 0) + 1;
+  return acc;
+}, {});
+
+patternCountArray = Object.entries(patternFileCounts).map(([pat, count]) => ({
+  pattern: pat,
+  count
+})).sort((a, b) => b.count - a.count);
+
+Plot.plot({
+  caption: "Number of files by dominant access pattern",
+  marginLeft: 80,
+  y: { label: null },
+  x: { label: "File Count" },
+  marks: [
+    Plot.barX(patternCountArray, {
+      y: "pattern", 
+      x: "count", 
+      fill: d => color(d.pattern),
+      sort: { y: "x", reverse: true }
+    })
+  ]
+})
+```
+
 ## Top Files
 
 ### Top 10 Files by I/O Size
