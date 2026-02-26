@@ -19,12 +19,21 @@ tryCatch({
   results <- fromJSON("results.json")
   ticks_per_second <- results$TimerResolution
   
-  # Check if we have sufficient data
-  if (is.null(results$Files) || length(results$Files) < 3) {
+  # Check if we have sufficient data - need multiple paradigms for bar charts
+  paradigms <- names(results$IOOperations)
+  if (is.null(paradigms) || length(paradigms) < 2) {
     USE_MOCK_DATA <<- TRUE
+    cat("Insufficient I/O paradigms in real data, using mock data\n")
+  }
+  # Also check if there's meaningful I/O (more than 1KB)
+  total_bytes <- sum(sapply(results$IOOperations, function(x) ifelse(is.null(x$Bytes), 0, x$Bytes)), na.rm = TRUE)
+  if (total_bytes < 1000) {
+    USE_MOCK_DATA <<- TRUE
+    cat("Insufficient I/O volume in real data, using mock data\n")
   }
 }, error = function(e) {
   USE_MOCK_DATA <<- TRUE
+  cat("Error loading real data, using mock data:", conditionMessage(e), "\n")
 })
 
 if (USE_MOCK_DATA) {
@@ -159,45 +168,40 @@ cat("\n\n")
 
 ## I/O by Paradigm
 
-```{r, fig.width=14, fig.height=6}
+```{r, fig.width=12, fig.height=5}
 # Prepare paradigm data
 paradigms <- names(io_ops)
 bytes_vec <- as.numeric(sapply(io_ops, function(x) ifelse(is.null(x$Bytes), 0, x$Bytes)))
 meta_vec <- as.numeric(sapply(io_ops, function(x) ifelse(is.null(x$MetaOperationTime), 0, x$MetaOperationTime))) / ticks_per_second
 transfer_vec <- as.numeric(sapply(io_ops, function(x) ifelse(is.null(x$TransferOperationTime), 0, x$TransferOperationTime))) / ticks_per_second
 
-# Professional color palette
-colors <- c("#3498db", "#e67e22", "#9b59b6", "#1abc9c", "#f39c12")
+# Normalize for comparison (scale to 0-1)
+bytes_norm <- bytes_vec / max(bytes_vec)
+transfer_norm <- transfer_vec / max(transfer_vec)
+meta_norm <- meta_vec / max(meta_vec)
 
-# Plot all three metrics side by side
-par(mfrow = c(1, 3), mar = c(5, 14, 4, 2))
+# Combine into matrix for grouped bar chart
+data_matrix <- rbind(bytes_norm, transfer_norm, meta_norm)
+colnames(data_matrix) <- paradigms
+rownames(data_matrix) <- c("Bytes Transferred", "Transfer Time", "Metadata Time")
 
-# Bytes
-idx <- order(bytes_vec, decreasing = TRUE)
-barplot(bytes_vec[idx], names.arg = paradigms[idx], horiz = TRUE, 
-        xlab = "Bytes", main = "(a) I/O Size per Paradigm",
-        col = colors[seq_along(bytes_vec)], las = 1)
+# Appealing color palette (viridis-inspired)
+colors <- c("#440154", "#21908c", "#fde725")
 
-# Transfer Time
-idx <- order(transfer_vec, decreasing = TRUE)
-barplot(transfer_vec[idx], names.arg = paradigms[idx], horiz = TRUE,
-        xlab = "Time (s)", main = "(b) Transfer Time per Paradigm",
-        col = colors[seq_along(transfer_vec)], las = 1)
-
-# Meta Time
-idx <- order(meta_vec, decreasing = TRUE)
-barplot(meta_vec[idx], names.arg = paradigms[idx], horiz = TRUE,
-        xlab = "Time (s)", main = "(c) Meta I/O Time per Paradigm",
-        col = colors[seq_along(meta_vec)], las = 1)
-
-par(mfrow = c(1, 1))
+# Grouped bar chart with nice axis
+bp <- barplot(data_matrix, beside = TRUE, col = colors, 
+        xlab = "I/O Paradigm", ylab = "Normalized Value (0-1)",
+        main = "I/O Metrics by Paradigm",
+        legend.text = TRUE, args.legend = list(x = "topright", inset = c(0, -0.1), bg = "white"),
+        las = 2, ylim = c(0, 1.25), border = NA, cex.lab = 1.1, cex.main = 1.2)
+axis(2, at = seq(0, 1, 0.2), labels = sprintf("%.0f%%", seq(0, 100, 20)), las = 1)
 ```
 
 ## Local Access Patterns
 
 *Analysis of per-file I/O access patterns (CONTIGUOUS, STRIDED, RANDOM, NONE)*
 
-```{r, fig.width=14, fig.height=6}
+```{r, fig.width=10, fig.height=4}
 # Aggregate access pattern data
 files <- results$Files
 
@@ -215,22 +219,23 @@ ap_names <- c("CONTIGUOUS", "STRIDED", "RANDOM", "NONE")
 ap_bytes_vec <- c(cont_bytes, strd_bytes, rand_bytes, none_bytes)
 ap_ticks_vec <- c(cont_ticks, strd_ticks, rand_ticks, none_ticks)
 
-# Plot both Time and Bytes side by side
-par(mfrow = c(1, 2), mar = c(5, 14, 4, 2))
+# Normalize for grouped chart
+bytes_norm <- ap_bytes_vec / max(ap_bytes_vec)
+ticks_norm <- ap_ticks_vec / max(ap_ticks_vec)
 
-# Time by pattern
-idx <- order(ap_ticks_vec, decreasing = TRUE)
-barplot(ap_ticks_vec[idx], names.arg = ap_names[idx], horiz = TRUE,
-        xlab = "Ticks (scaled)", main = "I/O Ticks by Access Pattern",
-        col = colors[seq_along(ap_names)], las = 1)
+data_matrix <- rbind(bytes_norm, ticks_norm)
+colnames(data_matrix) <- ap_names
+rownames(data_matrix) <- c("Bytes", "Time")
 
-# Bytes by pattern  
-idx <- order(ap_bytes_vec, decreasing = TRUE)
-barplot(ap_bytes_vec[idx], names.arg = ap_names[idx], horiz = TRUE,
-        xlab = "Bytes", main = "I/O Size by Access Pattern",
-        col = colors[seq_along(ap_names)], las = 1)
+# Appealing color palette
+colors <- c("#440154", "#21908c")
 
-par(mfrow = c(1, 1))
+bp <- barplot(data_matrix, beside = TRUE, col = colors,
+        xlab = "Access Pattern", ylab = "Normalized Value (0-1)",
+        main = "Access Pattern Analysis",
+        legend.text = TRUE, args.legend = list(x = "topright", bg = "white"),
+        las = 2, ylim = c(0, 1.25), border = NA, cex.lab = 1.1, cex.main = 1.2)
+axis(2, at = seq(0, 1, 0.2), labels = sprintf("%.0f%%", seq(0, 100, 20)), las = 1)
 ```
 
 ### Per-File Access Pattern Breakdown
@@ -271,27 +276,28 @@ loc_agg$TotalBytes <- loc_agg$Bytes_read + loc_agg$Bytes_write
 loc_agg <- loc_agg[order(-loc_agg$TotalBytes), ]
 loc_agg$Label <- paste0(loc_agg$Nr_locs, ifelse(loc_agg$Nr_locs == 1, " rank", " ranks"))
 
-# Plot by location count
-par(mar = c(5, 14, 4, 2))
-barplot(loc_agg$TotalBytes, names.arg = loc_agg$Label, horiz = TRUE,
-        xlab = "Bytes", main = "I/O by Number of Accessing Ranks",
-        col = "#3498db", las = 1)
-par(mar = c(5, 4, 4, 2))
-```
-
-### Files by Rank Count
-
-```{r, fig.width=10, fig.height=5}
 # Count files per rank
 file_count <- aggregate(FileName ~ Nr_locs, data = files, FUN = length)
 file_count <- file_count[order(-file_count$FileName), ]
 file_count$Label <- paste0(file_count$Nr_locs, ifelse(file_count$Nr_locs == 1, " rank", " ranks"))
 
-par(mar = c(5, 14, 4, 2))
-barplot(file_count$FileName, names.arg = file_count$Label, horiz = TRUE,
-        xlab = "File Count", main = "Number of Files by Accessing Ranks",
-        col = "#e67e22", las = 1)
-par(mar = c(5, 4, 4, 2))
+# Normalize for grouped chart
+bytes_norm <- loc_agg$TotalBytes / max(loc_agg$TotalBytes)
+count_norm <- file_count$FileName / max(file_count$FileName)
+
+data_matrix <- rbind(bytes_norm, count_norm)
+colnames(data_matrix) <- loc_agg$Label
+rownames(data_matrix) <- c("Total I/O Bytes", "File Count")
+
+# Appealing color palette
+colors <- c("#440154", "#21908c")
+
+bp <- barplot(data_matrix, beside = TRUE, col = colors,
+        xlab = "Number of MPI Ranks Accessing File", ylab = "Normalized Value (0-1)",
+        main = "I/O by Number of Accessing Ranks",
+        legend.text = TRUE, args.legend = list(x = "topright", bg = "white"),
+        las = 2, ylim = c(0, 1.25), border = NA, cex.lab = 1.1, cex.main = 1.2)
+axis(2, at = seq(0, 1, 0.2), labels = sprintf("%.0f%%", seq(0, 100, 20)), las = 1)
 ```
 
 ## Top Files
