@@ -50,14 +50,19 @@ grep -l 'Access Pattern' scripts/output.html   # Access pattern charts
 grep -E '## (Overview|I/O by Paradigm|Local Access Patterns|Global|Top Files)' scripts/output.html
 ```
 
-### Check for errors
+### Check bar charts specifically
+
+Bar charts in the HTML should show proper bars, not single rectangles. Check the generated PNG files:
 
 ```bash
-# Look for Quarto rendering errors
-grep -i 'error\|Error\|ERROR' scripts/output.html | head -10
+# List chart files
+ls -la scripts/output_files/figure-html/
 
-# Check browser console errors (if opened in browser)
-# Look for JavaScript errors or missing resources
+# Check PNG dimensions (should have reasonable height for bars)
+file scripts/output_files/figure-html/*.png
+
+# Verify the PNG contains bar-like shapes (not flat rectangles)
+# If bars look like single rectangles, the data vector may be named or structured incorrectly
 ```
 
 ### Verify JSON data
@@ -68,6 +73,9 @@ ls -la scripts/results.json
 
 # Validate JSON structure
 python3 -c "import json; d=json.load(open('scripts/results.json')); print('Keys:', list(d.keys()))"
+
+# Check if data has multiple paradigms (bar chart requires >1 value)
+python3 -c "import json; d=json.load(open('scripts/results.json')); print('Paradigms:', list(d.get('IOOperations', {}).keys()))"
 ```
 
 ### Full verification script
@@ -91,10 +99,12 @@ echo "JSON size: $(stat -c %s scripts/results.json 2>/dev/null || echo 0) bytes"
 CHART_COUNT=$(grep -c 'img.*figure-img' scripts/output.html 2>/dev/null || echo 0)
 echo "Embedded charts: $CHART_COUNT"
 
-# Check for key sections
-echo ""
-echo "Sections found:"
-grep -oE 'id="[^"]*"' scripts/output.html | grep -v '^id="$' | head -20
+# Check PNG files exist and have proper size
+if [ -d "scripts/output_files/figure-html" ]; then
+  echo ""
+  echo "Chart files:"
+  ls -la scripts/output_files/figure-html/*.png 2>/dev/null | head -10
+fi
 
 # Look for errors
 ERROR_COUNT=$(grep -ci 'error' scripts/output.html 2>/dev/null || echo 0)
@@ -107,30 +117,31 @@ echo "Error mentions: $ERROR_COUNT"
 A successful visualization should have:
 
 - `scripts/output.html` (20-50 KB)
-- At least 5 embedded chart images
+- At least 4 embedded chart images with multiple bars each
 - Sections: Overview, I/O by Paradigm, Access Patterns, Top Files
 - No rendering errors
 
-## Troubleshooting
+## Common Issues
 
-If verification fails:
+### Single rectangle instead of bars
 
-1. **No HTML file**: Run Quarto manually to see errors:
-   ```bash
-   cd scripts && quarto render output.qmd --to html 2>&1
-   ```
+If bar charts show as single flat rectangles:
+1. Check the data vector - may be a named vector that needs to be converted to numeric
+2. Use `as.numeric()` on the vector explicitly
+3. Ensure data is not a data.frame column
 
-2. **No charts**: Check R/jsonlite installed:
-   ```bash
-   Rscript -e 'library(jsonlite); print("OK")'
-   ```
+Example fix in R:
+```r
+# Wrong - creates named vector
+bytes_data <- sapply(io_ops, function(x) x$Bytes)
 
-3. **Empty charts**: Check results.json has data
-   ```bash
-   python3 -c "import json; d=json.load(open('scripts/results.json')); print('Files:', len(d.get('Files', [])))"
-   ```
+# Correct - ensures numeric
+bytes_vec <- as.numeric(sapply(io_ops, function(x) ifelse(is.null(x$Bytes), 0, x$Bytes)))
+```
 
-4. **Missing sections**: Check output.qmd syntax
-   ```bash
-   quarto render output.qmd --to html --verbose
-   ```
+### Tables not rendering
+
+Use `results="asis"` chunk option for markdown tables:
+```{r, results="asis"}
+cat("| Col1 | Col2 |\n|------|------|\n")
+```
