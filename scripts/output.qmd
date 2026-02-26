@@ -62,52 +62,66 @@ num_files <- nrow(results$Files)
 
 ## I/O by Paradigm
 
-```{r, fig.width=10, fig.height=5}
-# Prepare paradigm data
+```{r, fig.width=12, fig.height=5}
+# Prepare paradigm data - all three metrics
 paradigms <- names(io_ops)
 bytes_data <- sapply(io_ops, function(x) ifelse(is.null(x$Bytes), 0, x$Bytes))
-time_data <- sapply(io_ops, function(x) {
-  meta <- ifelse(is.null(x$MetaOperationTime), 0, x$MetaOperationTime)
-  trans <- ifelse(is.null(x$TransferOperationTime), 0, x$TransferOperationTime)
-  (meta + trans) / ticks_per_second
-})
+meta_data <- sapply(io_ops, function(x) ifelse(is.null(x$MetaOperationTime), 0, x$MetaOperationTime) / ticks_per_second)
+transfer_data <- sapply(io_ops, function(x) ifelse(is.null(x$TransferOperationTime), 0, x$TransferOperationTime) / ticks_per_second)
 
 par_df <- data.frame(
   Paradigm = paradigms,
   Bytes = bytes_data,
-  Time = time_data,
+  MetaTime = meta_data,
+  TransferTime = transfer_data,
   stringsAsFactors = FALSE
 )
 
-# Plot bytes by paradigm
-par_df$Paradigm <- factor(par_df$Paradigm, levels = par_df$Paradigm[order(par_df$Bytes)])
-barplot(par_df$Bytes, names.arg = par_df$Paradigm, horiz = TRUE, 
-        xlab = "Bytes", main = "Total I/O by Paradigm",
-        col = rainbow(length(par_df$Paradigm)))
-```
+# Plot all three metrics side by side
+par(mfrow = c(1, 3), mar = c(5, 8, 4, 2))
 
-```{r, fig.width=10, fig.height=5}
-# Plot time by paradigm
-par_df$Paradigm <- factor(par_df$Paradigm, levels = par_df$Paradigm[order(par_df$Time)])
-barplot(par_df$Time, names.arg = par_df$Paradigm, horiz = TRUE,
-        xlab = "Time", main = "I/O Time by Paradigm",
+# Bytes
+par_df <- par_df[order(par_df$Bytes, decreasing = TRUE), ]
+barplot(par_df$Bytes, names.arg = par_df$Paradigm, horiz = TRUE, 
+        xlab = "Bytes", main = "(a) I/O Size per Paradigm",
         col = rainbow(length(par_df$Paradigm)))
+
+# Transfer Time  
+par_df <- par_df[order(par_df$TransferTime, decreasing = TRUE), ]
+barplot(par_df$TransferTime, names.arg = par_df$Paradigm, horiz = TRUE,
+        xlab = "Time (s)", main = "(b) Transfer Time per Paradigm",
+        col = rainbow(length(par_df$Paradigm)))
+
+# Meta Time
+par_df <- par_df[order(par_df$MetaTime, decreasing = TRUE), ]
+barplot(par_df$MetaTime, names.arg = par_df$Paradigm, horiz = TRUE,
+        xlab = "Time (s)", main = "(c) Meta I/O Time per Paradigm",
+        col = rainbow(length(par_df$Paradigm)))
+
+par(mfrow = c(1, 1))
 ```
 
 ## Local Access Patterns
 
-```{r, fig.width=10, fig.height=6}
-# Aggregate access pattern data from data.frame
-ap_ticks <- results$Files$`Ticks spent per Access Pattern`
-ap_bytes <- results$Files$`I/O sizes per Access Pattern`
+*Analysis of per-file I/O access patterns (CONTIGUOUS, STRIDED, RANDOM, NONE)*
 
-# Sum across all files
+```{r, fig.width=12, fig.height=6}
+# Aggregate access pattern data - both ticks and bytes
+files <- results$Files
+
+# Get access pattern columns
+ap_ticks <- files$`Ticks spent per Access Pattern`
+ap_bytes <- files$`I/O sizes per Access Pattern`
+
+# Sum across all files for each pattern
+patterns <- names(ap_ticks)
 total_ticks <- colSums(ap_ticks, na.rm = TRUE)
 total_bytes_ap <- colSums(ap_bytes, na.rm = TRUE)
 
-patterns <- gsub("AccessPattern::", "", names(total_ticks))
+pattern_names <- gsub("AccessPattern::", "", patterns)
+
 ap_df <- data.frame(
-  Pattern = patterns,
+  Pattern = pattern_names,
   Ticks = as.numeric(total_ticks),
   Bytes = as.numeric(total_bytes_ap),
   Time = as.numeric(total_ticks) / ticks_per_second,
@@ -115,57 +129,161 @@ ap_df <- data.frame(
 )
 ap_df <- ap_df[ap_df$Bytes > 0 | ap_df$Time > 0, ]
 
-# Plot access pattern distribution
-if (nrow(ap_df) > 0) {
-  ap_df$Pattern <- factor(ap_df$Pattern, levels = ap_df$Pattern[order(ap_df$Time)])
-  barplot(ap_df$Time, names.arg = ap_df$Pattern, horiz = TRUE,
-          xlab = "Time", main = "I/O Time by Access Pattern",
-          col = rainbow(length(ap_df$Pattern)))
-}
+# Plot both Time and Bytes side by side
+par(mfrow = c(1, 2), mar = c(5, 10, 4, 2))
+
+# Time by pattern
+ap_df <- ap_df[order(ap_df$Time, decreasing = TRUE), ]
+barplot(ap_df$Time, names.arg = ap_df$Pattern, horiz = TRUE,
+        xlab = "Time (seconds)", main = "I/O Time by Access Pattern",
+        col = rainbow(nrow(ap_df)))
+
+# Bytes by pattern  
+ap_df <- ap_df[order(ap_df$Bytes, decreasing = TRUE), ]
+barplot(ap_df$Bytes, names.arg = ap_df$Pattern, horiz = TRUE,
+        xlab = "Bytes", main = "I/O Size by Access Pattern",
+        col = rainbow(nrow(ap_df)))
+
+par(mfrow = c(1, 1))
 ```
 
-```{r, fig.width=10, fig.height=6}
-# Plot bytes by access pattern
-if (nrow(ap_df) > 0) {
-  ap_df$Pattern <- factor(ap_df$Pattern, levels = ap_df$Pattern[order(ap_df$Bytes)])
-  barplot(ap_df$Bytes, names.arg = ap_df$Pattern, horiz = TRUE,
-          xlab = "Bytes", main = "I/O Size by Access Pattern",
-          col = rainbow(length(ap_df$Pattern)))
+### Per-File Access Pattern Breakdown
+
+```{r, fig.width=12, fig.height=8}
+# Create per-file access pattern table
+file_names <- gsub(".*/", "", files$FileName)
+bytes_read <- as.numeric(files$`#Bytes read`)
+bytes_write <- as.numeric(files$`#Bytes write`)
+ap_ticks <- files$`Ticks spent per Access Pattern`
+ap_bytes <- files$`I/O sizes per Access Pattern`
+
+# Filter to files with actual I/O
+has_io <- (bytes_read + bytes_write) > 0
+
+# Print as detailed table
+cat("\n### Detailed Per-File Access Patterns\n\n")
+cat("| File | Read | Write |")
+cat(" CONTIGUOUS | STRIDED | RANDOM | NONE |")
+cat(" CONG_Ticks | STRD_Ticks | RAND_Ticks | NONE_Ticks |\n")
+cat("|--------|-----------|------------|", rep("--------|", 8), "\n")
+
+for (i in 1:nrow(files)) {
+  if (!has_io[i] || nchar(file_names[i]) == 0) next
+  
+  read_b <- format_bytes(bytes_read[i])
+  write_b <- format_bytes(bytes_write[i])
+  
+  # Get pattern bytes
+  cont_b <- format_bytes(ap_bytes[i, ]$`AccessPattern::CONTIGUOUS`)
+  strd_b <- format_bytes(ap_bytes[i, ]$`AccessPattern::STRIDED`)
+  rand_b <- format_bytes(ap_bytes[i, ]$`AccessPattern::RANDOM`)
+  none_b <- format_bytes(ap_bytes[i, ]$`AccessPattern::NONE`)
+  
+  # Get pattern ticks
+  cont_t <- ap_ticks[i, ]$`AccessPattern::CONTIGUOUS`
+  strd_t <- ap_ticks[i, ]$`AccessPattern::STRIDED`
+  rand_t <- ap_ticks[i, ]$`AccessPattern::RANDOM`
+  none_t <- ap_ticks[i, ]$`AccessPattern::NONE`
+  
+  cat(sprintf("| %s | %s | %s | %s | %s | %s | %s | %d | %d | %d | %d |\n",
+              substr(file_names[i], 1, 30), read_b, write_b,
+              cont_b, strd_b, rand_b, none_b,
+              cont_t, strd_t, rand_t, none_t))
 }
 ```
 
 ## Global Access Pattern Analysis
 
+*How I/O patterns vary based on number of MPI ranks accessing each file*
+
 ```{r, fig.width=10, fig.height=5}
-# Aggregate by number of locations
-loc_agg <- aggregate(
-  cbind(`#Bytes read`, `#Bytes write`) ~ `Nr accesses from different locations`, 
-  data = results$Files, 
-  FUN = sum, 
-  na.rm = TRUE
+# Aggregate by number of locations - also track patterns
+files <- results$Files
+loc_data <- list()
+
+for (i in 1:nrow(files)) {
+  nr_locs <- files$`Nr accesses from different locations`[i]
+  if (nr_locs == 0) next
+  
+  bytes <- files$`#Bytes read`[i] + files$`#Bytes write`[i]
+  ticks <- files$`Ticks spent on I/O`[i] + files$`Ticks spent on Metadata`[i]
+  
+  # Get patterns
+  pat_bytes <- files$`I/O sizes per Access Pattern`[i, ]
+  pat_ticks <- files$`Ticks spent per Access Pattern`[i, ]
+  
+  if (is.null(loc_data[[as.character(nr_locs)]])) {
+    loc_data[[as.character(nr_locs)]] <- list(
+      bytes = 0, files = 0, ticks = 0,
+      cont_bytes = 0, strd_bytes = 0, rand_bytes = 0, none_bytes = 0,
+      cont_ticks = 0, strd_ticks = 0, rand_ticks = 0, none_ticks = 0
+    )
+  }
+  
+  loc <- loc_data[[as.character(nr_locs)]]
+  loc$bytes <- loc$bytes + bytes
+  loc$files <- loc$files + 1
+  loc$ticks <- loc$ticks + ticks
+  loc$cont_bytes <- loc$cont_bytes + (pat_bytes$`AccessPattern::CONTIGUOUS` %||% 0)
+  loc$strd_bytes <- loc$strd_bytes + (pat_bytes$`AccessPattern::STRIDED` %||% 0)
+  loc$rand_bytes <- loc$rand_bytes + (pat_bytes$`AccessPattern::RANDOM` %||% 0)
+  loc$none_bytes <- loc$none_bytes + (pat_bytes$`AccessPattern::NONE` %||% 0)
+  loc$cont_ticks <- loc$cont_ticks + (pat_ticks$`AccessPattern::CONTIGUOUS` %||% 0)
+  loc$strd_ticks <- loc$strd_ticks + (pat_ticks$`AccessPattern::STRIDED` %||% 0)
+  loc$rand_ticks <- loc$rand_ticks + (pat_ticks$`AccessPattern::RANDOM` %||% 0)
+  loc$none_ticks <- loc$none_ticks + (pat_ticks$`AccessPattern::NONE` %||% 0)
+  loc_data[[as.character(nr_locs)]] <- loc
+}
+
+loc_df <- data.frame(
+  Locations = as.integer(names(loc_data)),
+  Bytes = sapply(loc_data, function(x) x$bytes),
+  Files = sapply(loc_data, function(x) x$files),
+  stringsAsFactors = FALSE
 )
-loc_agg$TotalBytes <- loc_agg$`#Bytes read` + loc_agg$`#Bytes write`
-loc_agg$Label <- paste0(loc_agg$`Nr accesses from different locations`, 
-                        ifelse(loc_agg$`Nr accesses from different locations` == 1, " rank", " ranks"))
-loc_agg <- loc_agg[order(-loc_agg$TotalBytes), ]
+loc_df <- loc_df[order(-loc_df$Bytes), ]
+loc_df$Label <- paste0(loc_df$Locations, ifelse(loc_df$Locations == 1, " rank", " ranks"))
 
 # Plot by location count
-barplot(loc_agg$TotalBytes, names.arg = loc_agg$Label, horiz = TRUE,
+par(mar = c(5, 10, 4, 2))
+barplot(loc_df$Bytes, names.arg = loc_df$Label, horiz = TRUE,
         xlab = "Bytes", main = "I/O by Number of Accessing Ranks",
         col = "#3498db")
+par(mar = c(5, 4, 4, 2))
+```
+
+### Access Patterns by Rank Count
+
+```{r, fig.width=12, fig.height=5}
+# Show pattern breakdown by rank count
+loc_pattern_df <- data.frame(
+  Label = loc_df$Label,
+  CONTIGUOUS = sapply(loc_data, function(x) x$cont_bytes),
+  STRIDED = sapply(loc_data, function(x) x$strd_bytes),
+  RANDOM = sapply(loc_data, function(x) x$rand_bytes),
+  NONE = sapply(loc_data, function(x) x$none_bytes)
+)
+
+# Stacked bar chart
+par(mar = c(5, 10, 4, 2))
+barplot(t(loc_pattern_df[, -1]), names.arg = loc_pattern_df$Label, horiz = TRUE,
+        col = c("#2ecc71", "#3498db", "#e74c3c", "#95a5a6"),
+        xlab = "Bytes", main = "Access Pattern Distribution by Rank Count",
+        legend = TRUE)
+par(mar = c(5, 4, 4, 2))
 ```
 
 ## Top Files
 
+### Top 10 by I/O Size
+
 ```{r}
-# Top files by I/O
 top_files <- results$Files
 top_files$Total <- top_files$`#Bytes read` + top_files$`#Bytes write`
 top_files$Time <- (top_files$`Ticks spent on I/O` + top_files$`Ticks spent on Metadata`) / ticks_per_second
 top_files <- top_files[order(-top_files$Total), ][1:10, ]
 top_files$FileName <- gsub(".*/", "", top_files$FileName)
 
-# Print as markdown table
 cat("| File | Read | Write | Time | Paradigm |\n")
 cat("|------|------|-------|------|----------|\n")
 for (i in 1:nrow(top_files)) {
@@ -176,6 +294,25 @@ for (i in 1:nrow(top_files)) {
               format_bytes(top_files$`#Bytes write`[i]),
               format_time(top_files$Time[i] * ticks_per_second),
               paradigm))
+}
+```
+
+### Top 10 by I/O Time
+
+```{r}
+top_time <- results$Files
+top_time$Time <- (top_time$`Ticks spent on I/O` + top_time$`Ticks spent on Metadata`) / ticks_per_second
+top_time <- top_time[order(-top_time$Time), ][1:10, ]
+top_time$FileName <- gsub(".*/", "", top_time$FileName)
+
+cat("\n| File | I/O Time | Read | Write |\n")
+cat("|------|----------|------|-------|\n")
+for (i in 1:nrow(top_time)) {
+  cat(sprintf("| %s | %s | %s | %s |\n",
+              top_time$FileName[i],
+              format_time(top_time$Time[i] * ticks_per_second),
+              format_bytes(top_time$`#Bytes read`[i]),
+              format_bytes(top_time$`#Bytes write`[i])))
 }
 ```
 
