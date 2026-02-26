@@ -1,26 +1,30 @@
 {
   "Trace": {
-    "FileName": "/home/alex/Documents/Work/ra_shk/otf2_cli_profile/tests/integration/out/scorep_trace_file_access_pattern/traces.otf2",
-    "Id": 13043327890422051611
+    "FileName": "comprehensive_trace.otf2",
+    "Id": 123456789012345
   },
   "JobId": 0,
-  "NodeCount": 1,
-  "ProcessCount": 4,
-  "ThreadCount": 4,
-  "TimerResolution": 2304007874,
+  "NodeCount": 2,
+  "ProcessCount": 16,
+  "ThreadCount": 16,
+  "TimerResolution": 1000000,
   "HardwareCounters": [],
   "Functions": {
     "COMPILER": {
-      "Count": 4,
-      "Time": 145444
+      "Count": 16,
+      "Time": 169054
     },
     "COMPUTE": {
-      "Count": 72,
-      "Time": 835009
+      "Count": 520,
+      "Time": 19570860
     },
     "MPI": {
-      "Count": 16,
-      "Time": 1891271642
+      "Count": 160,
+      "Time": 13225422
+    },
+    "IO": {
+      "Count": 480,
+      "Time": 5242880
     }
   },
   "Messages": {
@@ -34,322 +38,689 @@
     "MPI": {}
   },
   "IOOperations": {
-    "ISO C I/O": {
-      "Bytes": 1012,
-      "Count": 56,
-      "MetaOperationTime": 270748,
-      "TransferOperationTime": 234928
-    },
     "POSIX I/O": {
-      "Bytes": 50000000,
-      "Count": 1000,
-      "MetaOperationTime": 500000,
-      "TransferOperationTime": 2500000
+      "Bytes": 52000000000,
+      "Count": 12500,
+      "MetaOperationTime": 5200000,
+      "TransferOperationTime": 26000000
     },
     "MPI I/O": {
-      "Bytes": 80000000,
-      "Count": 500,
-      "MetaOperationTime": 800000,
-      "TransferOperationTime": 4000000
+      "Bytes": 38000000000,
+      "Count": 8500,
+      "MetaOperationTime": 3800000,
+      "TransferOperationTime": 19000000
     },
     "HDF5": {
-      "Bytes": 120000000,
-      "Count": 200,
-      "MetaOperationTime": 1200000,
-      "TransferOperationTime": 6000000
+      "Bytes": 21000000000,
+      "Count": 3200,
+      "MetaOperationTime": 4200000,
+      "TransferOperationTime": 10500000
+    },
+    "netCDF": {
+      "Bytes": 8500000000,
+      "Count": 1800,
+      "MetaOperationTime": 1700000,
+      "TransferOperationTime": 4250000
     }
   },
   "Files": [
     {
-      "FileName": "",
+      "FileName": "/data/simulation_00.h5",
       "IoParadigm": [
-        "POSIX I/O"
+        "HDF5",
+        "netCDF"
       ],
-      "AccessModes": "R",
+      "AccessModes": "RW",
       "ParentFile": null,
-      "#Bytes read": 0,
-      "#Bytes write": 0,
-      "Ticks spent on I/O": 0,
-      "Ticks spent on Metadata": 0,
-      "Nr accesses from different locations": 0,
-      "Ticks spent per Access Pattern": {},
-      "I/O sizes per Access Pattern": {}
+      "#Bytes read": 14427546,
+      "#Bytes write": 399116895,
+      "Ticks spent on I/O": 829295,
+      "Ticks spent on Metadata": 319588,
+      "Nr accesses from different locations": 1,
+      "Ticks spent per Access Pattern": {
+        "AccessPattern::CONTIGUOUS": 49265,
+        "AccessPattern::STRIDED": 7717,
+        "AccessPattern::RANDOM": 45348,
+        "AccessPattern::NONE": 49540
+      },
+      "I/O sizes per Access Pattern": {
+        "AccessPattern::CONTIGUOUS": 18556905,
+        "AccessPattern::STRIDED": 16534414,
+        "AccessPattern::RANDOM": 15079419,
+        "AccessPattern::NONE": 9464231
+      }
     },
     {
-      "FileName": "/home/alex/Documents/Work/ra_shk/otf2_cli_profile/tests/integration/out/rank_0_file.txt",
+      "FileName": "/data/simulation_01.nc",
       "IoParadigm": [
-        "POSIX I/O",
+        "netCDF"
+      ],
+      "AccessModes": "RW",
+      "ParentFile": null,
+      "#Bytes read": 16997261,
+      "#Bytes write": 51302251,
+      "Ticks spent on I/O": 4671300,
+      "Ticks spent on Metadata": 229949,
+      "Nr accesses from different locations": 1,
+      "Ticks spent per Access Pattern": {
+        "AccessPattern::CONTIGUOUS": 2739,
+        "AccessPattern::STRIDED": 37781,
+        "AccessPattern::RANDOM": 14031,
+        "AccessPattern::NONE": 47925
+      },
+      "I/O sizes per Access Pattern": {
+        "AccessPattern::CONTIGUOUS": 14772546,
+        "AccessPattern::STRIDED": 15713608,
+        "AccessPattern::RANDOM": 34013819,
+        "AccessPattern::NONE": 40500793
+      }
+    },
+    {
+      "FileName": "/data/simulation_02.bin",
+      "IoParadigm": [
         "MPI I/O"
       ],
       "AccessModes": "RW",
       "ParentFile": null,
-      "#Bytes read": 1000253,
-      "#Bytes write": 2000000,
-      "Ticks spent on I/O": 109834,
-      "Ticks spent on Metadata": 0,
-      "Nr accesses from different locations": 1,
+      "#Bytes read": 317359605,
+      "#Bytes write": 150352498,
+      "Ticks spent on I/O": 2923559,
+      "Ticks spent on Metadata": 63587,
+      "Nr accesses from different locations": 4,
       "Ticks spent per Access Pattern": {
-        "AccessPattern::NONE": 0,
-        "AccessPattern::CONTIGUOUS": 47934,
-        "AccessPattern::STRIDED": 0,
-        "AccessPattern::RANDOM": 0
+        "AccessPattern::CONTIGUOUS": 23298,
+        "AccessPattern::STRIDED": 19210,
+        "AccessPattern::RANDOM": 11189,
+        "AccessPattern::NONE": 15110
       },
       "I/O sizes per Access Pattern": {
-        "AccessPattern::NONE": 0,
-        "AccessPattern::CONTIGUOUS": 253,
-        "AccessPattern::STRIDED": 0,
-        "AccessPattern::RANDOM": 0
+        "AccessPattern::CONTIGUOUS": 536124,
+        "AccessPattern::STRIDED": 10814555,
+        "AccessPattern::RANDOM": 46951341,
+        "AccessPattern::NONE": 28461172
       }
     },
     {
-      "FileName": "/home/alex/Documents/Work/ra_shk/otf2_cli_profile/tests/integration/out/rank_1_file.txt",
-      "IoParadigm": [
-        "POSIX I/O",
-        "MPI I/O"
-      ],
-      "AccessModes": "RW",
-      "ParentFile": null,
-      "#Bytes read": 1000253,
-      "#Bytes write": 2000000,
-      "Ticks spent on I/O": 119569,
-      "Ticks spent on Metadata": 0,
-      "Nr accesses from different locations": 1,
-      "Ticks spent per Access Pattern": {
-        "AccessPattern::NONE": 0,
-        "AccessPattern::CONTIGUOUS": 59435,
-        "AccessPattern::STRIDED": 0,
-        "AccessPattern::RANDOM": 0
-      },
-      "I/O sizes per Access Pattern": {
-        "AccessPattern::NONE": 0,
-        "AccessPattern::CONTIGUOUS": 253,
-        "AccessPattern::STRIDED": 0,
-        "AccessPattern::RANDOM": 0
-      }
-    },
-    {
-      "FileName": "/home/alex/Documents/Work/ra_shk/otf2_cli_profile/tests/integration/out/rank_2_file.txt",
-      "IoParadigm": [
-        "POSIX I/O",
-        "MPI I/O"
-      ],
-      "AccessModes": "RW",
-      "ParentFile": null,
-      "#Bytes read": 1000253,
-      "#Bytes write": 2000000,
-      "Ticks spent on I/O": 124129,
-      "Ticks spent on Metadata": 0,
-      "Nr accesses from different locations": 1,
-      "Ticks spent per Access Pattern": {
-        "AccessPattern::NONE": 0,
-        "AccessPattern::CONTIGUOUS": 52983,
-        "AccessPattern::STRIDED": 0,
-        "AccessPattern::RANDOM": 0
-      },
-      "I/O sizes per Access Pattern": {
-        "AccessPattern::NONE": 0,
-        "AccessPattern::CONTIGUOUS": 253,
-        "AccessPattern::STRIDED": 0,
-        "AccessPattern::RANDOM": 0
-      }
-    },
-    {
-      "FileName": "/home/alex/Documents/Work/ra_shk/otf2_cli_profile/tests/integration/out/rank_3_file.txt",
-      "IoParadigm": [
-        "POSIX I/O",
-        "MPI I/O"
-      ],
-      "AccessModes": "RW",
-      "ParentFile": null,
-      "#Bytes read": 1000253,
-      "#Bytes write": 2000000,
-      "Ticks spent on I/O": 152144,
-      "Ticks spent on Metadata": 0,
-      "Nr accesses from different locations": 1,
-      "Ticks spent per Access Pattern": {
-        "AccessPattern::NONE": 0,
-        "AccessPattern::CONTIGUOUS": 74576,
-        "AccessPattern::STRIDED": 0,
-        "AccessPattern::RANDOM": 0
-      },
-      "I/O sizes per Access Pattern": {
-        "AccessPattern::NONE": 0,
-        "AccessPattern::CONTIGUOUS": 253,
-        "AccessPattern::STRIDED": 0,
-        "AccessPattern::RANDOM": 0
-      }
-    },
-    {
-      "FileName": "STDERR_FILENO",
+      "FileName": "/data/simulation_03.bin",
       "IoParadigm": [
         "POSIX I/O"
       ],
-      "AccessModes": "R",
-      "ParentFile": null,
-      "#Bytes read": 0,
-      "#Bytes write": 0,
-      "Ticks spent on I/O": 0,
-      "Ticks spent on Metadata": 0,
-      "Nr accesses from different locations": 0,
-      "Ticks spent per Access Pattern": {},
-      "I/O sizes per Access Pattern": {}
-    },
-    {
-      "FileName": "STDIN_FILENO",
-      "IoParadigm": [
-        "POSIX I/O"
-      ],
-      "AccessModes": "R",
-      "ParentFile": null,
-      "#Bytes read": 0,
-      "#Bytes write": 0,
-      "Ticks spent on I/O": 0,
-      "Ticks spent on Metadata": 0,
-      "Nr accesses from different locations": 0,
-      "Ticks spent per Access Pattern": {},
-      "I/O sizes per Access Pattern": {}
-    },
-    {
-      "FileName": "STDOUT_FILENO",
-      "IoParadigm": [
-        "POSIX I/O"
-      ],
-      "AccessModes": "R",
-      "ParentFile": null,
-      "#Bytes read": 0,
-      "#Bytes write": 0,
-      "Ticks spent on I/O": 0,
-      "Ticks spent on Metadata": 0,
-      "Nr accesses from different locations": 0,
-      "Ticks spent per Access Pattern": {},
-      "I/O sizes per Access Pattern": {}
-    },
-    {
-      "FileName": "all open output streams",
-      "IoParadigm": [
-        "ISO C I/O"
-      ],
       "AccessModes": "RW",
       "ParentFile": null,
-      "#Bytes read": 0,
-      "#Bytes write": 0,
-      "Ticks spent on I/O": 0,
-      "Ticks spent on Metadata": 0,
-      "Nr accesses from different locations": 0,
-      "Ticks spent per Access Pattern": {},
-      "I/O sizes per Access Pattern": {}
+      "#Bytes read": 52924210,
+      "#Bytes write": 193725585,
+      "Ticks spent on I/O": 3275376,
+      "Ticks spent on Metadata": 51313,
+      "Nr accesses from different locations": 4,
+      "Ticks spent per Access Pattern": {
+        "AccessPattern::CONTIGUOUS": 48823,
+        "AccessPattern::STRIDED": 31108,
+        "AccessPattern::RANDOM": 36142,
+        "AccessPattern::NONE": 9180
+      },
+      "I/O sizes per Access Pattern": {
+        "AccessPattern::CONTIGUOUS": 23182477,
+        "AccessPattern::STRIDED": 40615368,
+        "AccessPattern::RANDOM": 17851694,
+        "AccessPattern::NONE": 3015909
+      }
     },
     {
-      "FileName": "stderr",
+      "FileName": "/data/simulation_04.bin",
       "IoParadigm": [
-        "ISO C I/O"
+        "POSIX I/O",
+        "MPI I/O"
       ],
       "AccessModes": "W",
       "ParentFile": null,
-      "#Bytes read": 0,
-      "#Bytes write": 0,
-      "Ticks spent on I/O": 0,
-      "Ticks spent on Metadata": 0,
-      "Nr accesses from different locations": 0,
-      "Ticks spent per Access Pattern": {},
-      "I/O sizes per Access Pattern": {}
+      "#Bytes read": 446283238,
+      "#Bytes write": 338498421,
+      "Ticks spent on I/O": 769343,
+      "Ticks spent on Metadata": 458432,
+      "Nr accesses from different locations": 1,
+      "Ticks spent per Access Pattern": {
+        "AccessPattern::CONTIGUOUS": 47174,
+        "AccessPattern::STRIDED": 5558,
+        "AccessPattern::RANDOM": 4003,
+        "AccessPattern::NONE": 44336
+      },
+      "I/O sizes per Access Pattern": {
+        "AccessPattern::CONTIGUOUS": 41608157,
+        "AccessPattern::STRIDED": 24368915,
+        "AccessPattern::RANDOM": 38845446,
+        "AccessPattern::NONE": 13004268
+      }
     },
     {
-      "FileName": "stdin",
+      "FileName": "/data/simulation_05.bin",
       "IoParadigm": [
-        "ISO C I/O"
+        "MPI I/O"
+      ],
+      "AccessModes": "RW",
+      "ParentFile": null,
+      "#Bytes read": 55224730,
+      "#Bytes write": 205078714,
+      "Ticks spent on I/O": 698967,
+      "Ticks spent on Metadata": 329360,
+      "Nr accesses from different locations": 16,
+      "Ticks spent per Access Pattern": {
+        "AccessPattern::CONTIGUOUS": 11659,
+        "AccessPattern::STRIDED": 25260,
+        "AccessPattern::RANDOM": 24283,
+        "AccessPattern::NONE": 14730
+      },
+      "I/O sizes per Access Pattern": {
+        "AccessPattern::CONTIGUOUS": 18754492,
+        "AccessPattern::STRIDED": 30527850,
+        "AccessPattern::RANDOM": 42760060,
+        "AccessPattern::NONE": 24583473
+      }
+    },
+    {
+      "FileName": "/data/simulation_06.h5",
+      "IoParadigm": [
+        "HDF5",
+        "netCDF"
+      ],
+      "AccessModes": "W",
+      "ParentFile": null,
+      "#Bytes read": 287764160,
+      "#Bytes write": 392446970,
+      "Ticks spent on I/O": 569241,
+      "Ticks spent on Metadata": 130087,
+      "Nr accesses from different locations": 1,
+      "Ticks spent per Access Pattern": {
+        "AccessPattern::CONTIGUOUS": 18691,
+        "AccessPattern::STRIDED": 42943,
+        "AccessPattern::RANDOM": 46099,
+        "AccessPattern::NONE": 37500
+      },
+      "I/O sizes per Access Pattern": {
+        "AccessPattern::CONTIGUOUS": 16528983,
+        "AccessPattern::STRIDED": 11065755,
+        "AccessPattern::RANDOM": 31121757,
+        "AccessPattern::NONE": 25564823
+      }
+    },
+    {
+      "FileName": "/data/simulation_07.bin",
+      "IoParadigm": [
+        "POSIX I/O"
+      ],
+      "AccessModes": "RW",
+      "ParentFile": null,
+      "#Bytes read": 170357567,
+      "#Bytes write": 216373707,
+      "Ticks spent on I/O": 3949128,
+      "Ticks spent on Metadata": 84905,
+      "Nr accesses from different locations": 16,
+      "Ticks spent per Access Pattern": {
+        "AccessPattern::CONTIGUOUS": 48049,
+        "AccessPattern::STRIDED": 21622,
+        "AccessPattern::RANDOM": 14934,
+        "AccessPattern::NONE": 43954
+      },
+      "I/O sizes per Access Pattern": {
+        "AccessPattern::CONTIGUOUS": 18067786,
+        "AccessPattern::STRIDED": 4541842,
+        "AccessPattern::RANDOM": 14258818,
+        "AccessPattern::NONE": 38162808
+      }
+    },
+    {
+      "FileName": "/data/simulation_08.h5",
+      "IoParadigm": [
+        "HDF5"
       ],
       "AccessModes": "R",
       "ParentFile": null,
-      "#Bytes read": 0,
-      "#Bytes write": 0,
-      "Ticks spent on I/O": 0,
-      "Ticks spent on Metadata": 0,
-      "Nr accesses from different locations": 0,
-      "Ticks spent per Access Pattern": {},
-      "I/O sizes per Access Pattern": {}
+      "#Bytes read": 133407135,
+      "#Bytes write": 400962915,
+      "Ticks spent on I/O": 4374216,
+      "Ticks spent on Metadata": 268744,
+      "Nr accesses from different locations": 1,
+      "Ticks spent per Access Pattern": {
+        "AccessPattern::CONTIGUOUS": 29077,
+        "AccessPattern::STRIDED": 39242,
+        "AccessPattern::RANDOM": 27175,
+        "AccessPattern::NONE": 24723
+      },
+      "I/O sizes per Access Pattern": {
+        "AccessPattern::CONTIGUOUS": 37772777,
+        "AccessPattern::STRIDED": 36270153,
+        "AccessPattern::RANDOM": 17732290,
+        "AccessPattern::NONE": 39330901
+      }
+    },
+    {
+      "FileName": "/data/simulation_09.bin",
+      "IoParadigm": [
+        "POSIX I/O"
+      ],
+      "AccessModes": "RW",
+      "ParentFile": null,
+      "#Bytes read": 26295410,
+      "#Bytes write": 463301106,
+      "Ticks spent on I/O": 4026287,
+      "Ticks spent on Metadata": 287408,
+      "Nr accesses from different locations": 16,
+      "Ticks spent per Access Pattern": {
+        "AccessPattern::CONTIGUOUS": 45596,
+        "AccessPattern::STRIDED": 28666,
+        "AccessPattern::RANDOM": 40086,
+        "AccessPattern::NONE": 5163
+      },
+      "I/O sizes per Access Pattern": {
+        "AccessPattern::CONTIGUOUS": 7458428,
+        "AccessPattern::STRIDED": 10357007,
+        "AccessPattern::RANDOM": 42207191,
+        "AccessPattern::NONE": 10836210
+      }
+    },
+    {
+      "FileName": "/data/simulation_10.h5",
+      "IoParadigm": [
+        "HDF5"
+      ],
+      "AccessModes": "W",
+      "ParentFile": null,
+      "#Bytes read": 463127581,
+      "#Bytes write": 7163826,
+      "Ticks spent on I/O": 3906110,
+      "Ticks spent on Metadata": 11701,
+      "Nr accesses from different locations": 4,
+      "Ticks spent per Access Pattern": {
+        "AccessPattern::CONTIGUOUS": 36190,
+        "AccessPattern::STRIDED": 18486,
+        "AccessPattern::RANDOM": 43006,
+        "AccessPattern::NONE": 23293
+      },
+      "I/O sizes per Access Pattern": {
+        "AccessPattern::CONTIGUOUS": 45753046,
+        "AccessPattern::STRIDED": 48466822,
+        "AccessPattern::RANDOM": 7787437,
+        "AccessPattern::NONE": 45848808
+      }
+    },
+    {
+      "FileName": "/data/simulation_11.h5",
+      "IoParadigm": [
+        "HDF5",
+        "netCDF"
+      ],
+      "AccessModes": "W",
+      "ParentFile": null,
+      "#Bytes read": 142405916,
+      "#Bytes write": 269750123,
+      "Ticks spent on I/O": 1455171,
+      "Ticks spent on Metadata": 292789,
+      "Nr accesses from different locations": 8,
+      "Ticks spent per Access Pattern": {
+        "AccessPattern::CONTIGUOUS": 20558,
+        "AccessPattern::STRIDED": 42874,
+        "AccessPattern::RANDOM": 34270,
+        "AccessPattern::NONE": 40909
+      },
+      "I/O sizes per Access Pattern": {
+        "AccessPattern::CONTIGUOUS": 12089124,
+        "AccessPattern::STRIDED": 34169940,
+        "AccessPattern::RANDOM": 7241109,
+        "AccessPattern::NONE": 42063185
+      }
+    },
+    {
+      "FileName": "/data/simulation_12.bin",
+      "IoParadigm": [
+        "POSIX I/O",
+        "MPI I/O"
+      ],
+      "AccessModes": "RW",
+      "ParentFile": null,
+      "#Bytes read": 322555926,
+      "#Bytes write": 175029959,
+      "Ticks spent on I/O": 760662,
+      "Ticks spent on Metadata": 54907,
+      "Nr accesses from different locations": 1,
+      "Ticks spent per Access Pattern": {
+        "AccessPattern::CONTIGUOUS": 21153,
+        "AccessPattern::STRIDED": 16692,
+        "AccessPattern::RANDOM": 4796,
+        "AccessPattern::NONE": 16785
+      },
+      "I/O sizes per Access Pattern": {
+        "AccessPattern::CONTIGUOUS": 32889774,
+        "AccessPattern::STRIDED": 1407062,
+        "AccessPattern::RANDOM": 7607315,
+        "AccessPattern::NONE": 24459226
+      }
+    },
+    {
+      "FileName": "/data/simulation_13.h5",
+      "IoParadigm": [
+        "HDF5",
+        "netCDF"
+      ],
+      "AccessModes": "RW",
+      "ParentFile": null,
+      "#Bytes read": 439099148,
+      "#Bytes write": 38158185,
+      "Ticks spent on I/O": 3649538,
+      "Ticks spent on Metadata": 121043,
+      "Nr accesses from different locations": 4,
+      "Ticks spent per Access Pattern": {
+        "AccessPattern::CONTIGUOUS": 32148,
+        "AccessPattern::STRIDED": 37031,
+        "AccessPattern::RANDOM": 11821,
+        "AccessPattern::NONE": 18370
+      },
+      "I/O sizes per Access Pattern": {
+        "AccessPattern::CONTIGUOUS": 35849305,
+        "AccessPattern::STRIDED": 8539645,
+        "AccessPattern::RANDOM": 8716205,
+        "AccessPattern::NONE": 44375128
+      }
+    },
+    {
+      "FileName": "/data/simulation_14.bin",
+      "IoParadigm": [
+        "POSIX I/O",
+        "MPI I/O"
+      ],
+      "AccessModes": "RW",
+      "ParentFile": null,
+      "#Bytes read": 392878757,
+      "#Bytes write": 371369867,
+      "Ticks spent on I/O": 3887340,
+      "Ticks spent on Metadata": 73441,
+      "Nr accesses from different locations": 16,
+      "Ticks spent per Access Pattern": {
+        "AccessPattern::CONTIGUOUS": 45019,
+        "AccessPattern::STRIDED": 43590,
+        "AccessPattern::RANDOM": 25472,
+        "AccessPattern::NONE": 29711
+      },
+      "I/O sizes per Access Pattern": {
+        "AccessPattern::CONTIGUOUS": 13599019,
+        "AccessPattern::STRIDED": 47945195,
+        "AccessPattern::RANDOM": 21018926,
+        "AccessPattern::NONE": 26875919
+      }
+    },
+    {
+      "FileName": "/data/simulation_15.bin",
+      "IoParadigm": [
+        "MPI I/O"
+      ],
+      "AccessModes": "RW",
+      "ParentFile": null,
+      "#Bytes read": 35373643,
+      "#Bytes write": 182508307,
+      "Ticks spent on I/O": 593868,
+      "Ticks spent on Metadata": 130031,
+      "Nr accesses from different locations": 1,
+      "Ticks spent per Access Pattern": {
+        "AccessPattern::CONTIGUOUS": 39564,
+        "AccessPattern::STRIDED": 15432,
+        "AccessPattern::RANDOM": 1471,
+        "AccessPattern::NONE": 5652
+      },
+      "I/O sizes per Access Pattern": {
+        "AccessPattern::CONTIGUOUS": 1511585,
+        "AccessPattern::STRIDED": 39580729,
+        "AccessPattern::RANDOM": 37273044,
+        "AccessPattern::NONE": 15542738
+      }
+    },
+    {
+      "FileName": "/data/simulation_16.bin",
+      "IoParadigm": [
+        "POSIX I/O"
+      ],
+      "AccessModes": "R",
+      "ParentFile": null,
+      "#Bytes read": 462513240,
+      "#Bytes write": 178397447,
+      "Ticks spent on I/O": 4890256,
+      "Ticks spent on Metadata": 312100,
+      "Nr accesses from different locations": 1,
+      "Ticks spent per Access Pattern": {
+        "AccessPattern::CONTIGUOUS": 44842,
+        "AccessPattern::STRIDED": 32812,
+        "AccessPattern::RANDOM": 15040,
+        "AccessPattern::NONE": 36339
+      },
+      "I/O sizes per Access Pattern": {
+        "AccessPattern::CONTIGUOUS": 4855156,
+        "AccessPattern::STRIDED": 34604433,
+        "AccessPattern::RANDOM": 16072220,
+        "AccessPattern::NONE": 18788292
+      }
+    },
+    {
+      "FileName": "/data/simulation_17.nc",
+      "IoParadigm": [
+        "netCDF"
+      ],
+      "AccessModes": "RW",
+      "ParentFile": null,
+      "#Bytes read": 422239347,
+      "#Bytes write": 254925412,
+      "Ticks spent on I/O": 554420,
+      "Ticks spent on Metadata": 363036,
+      "Nr accesses from different locations": 1,
+      "Ticks spent per Access Pattern": {
+        "AccessPattern::CONTIGUOUS": 44187,
+        "AccessPattern::STRIDED": 29249,
+        "AccessPattern::RANDOM": 24219,
+        "AccessPattern::NONE": 28759
+      },
+      "I/O sizes per Access Pattern": {
+        "AccessPattern::CONTIGUOUS": 27417331,
+        "AccessPattern::STRIDED": 12878193,
+        "AccessPattern::RANDOM": 6430097,
+        "AccessPattern::NONE": 6604916
+      }
+    },
+    {
+      "FileName": "/data/simulation_18.h5",
+      "IoParadigm": [
+        "HDF5",
+        "netCDF"
+      ],
+      "AccessModes": "RW",
+      "ParentFile": null,
+      "#Bytes read": 53837693,
+      "#Bytes write": 33541181,
+      "Ticks spent on I/O": 3638999,
+      "Ticks spent on Metadata": 106200,
+      "Nr accesses from different locations": 8,
+      "Ticks spent per Access Pattern": {
+        "AccessPattern::CONTIGUOUS": 17295,
+        "AccessPattern::STRIDED": 13556,
+        "AccessPattern::RANDOM": 13465,
+        "AccessPattern::NONE": 36146
+      },
+      "I/O sizes per Access Pattern": {
+        "AccessPattern::CONTIGUOUS": 27119456,
+        "AccessPattern::STRIDED": 48969586,
+        "AccessPattern::RANDOM": 22870212,
+        "AccessPattern::NONE": 7432920
+      }
+    },
+    {
+      "FileName": "/data/simulation_19.h5",
+      "IoParadigm": [
+        "HDF5"
+      ],
+      "AccessModes": "RW",
+      "ParentFile": null,
+      "#Bytes read": 135113815,
+      "#Bytes write": 470486071,
+      "Ticks spent on I/O": 2082894,
+      "Ticks spent on Metadata": 97194,
+      "Nr accesses from different locations": 4,
+      "Ticks spent per Access Pattern": {
+        "AccessPattern::CONTIGUOUS": 4315,
+        "AccessPattern::STRIDED": 43738,
+        "AccessPattern::RANDOM": 36427,
+        "AccessPattern::NONE": 1967
+      },
+      "I/O sizes per Access Pattern": {
+        "AccessPattern::CONTIGUOUS": 5158994,
+        "AccessPattern::STRIDED": 29838000,
+        "AccessPattern::RANDOM": 37031706,
+        "AccessPattern::NONE": 6670543
+      }
     },
     {
       "FileName": "stdout",
       "IoParadigm": [
-        "ISO C I/O"
+        "POSIX I/O"
       ],
       "AccessModes": "W",
-      "ParentFile": null,
       "#Bytes read": 0,
-      "#Bytes write": 0,
-      "Ticks spent on I/O": 0,
-      "Ticks spent on Metadata": 0,
-      "Nr accesses from different locations": 0,
-      "Ticks spent per Access Pattern": {},
-      "I/O sizes per Access Pattern": {}
+      "#Bytes write": 45000,
+      "Ticks spent on I/O": 1200,
+      "Ticks spent on Metadata": 100,
+      "Nr accesses from different locations": 16,
+      "Ticks spent per Access Pattern": {
+        "AccessPattern::NONE": 1200
+      },
+      "I/O sizes per Access Pattern": {
+        "AccessPattern::NONE": 45000
+      }
     },
     {
-      "FileName": "sync - commit buffer cache to disk",
+      "FileName": "stderr",
       "IoParadigm": [
         "POSIX I/O"
       ],
-      "AccessModes": "RW",
-      "ParentFile": null,
+      "AccessModes": "W",
       "#Bytes read": 0,
-      "#Bytes write": 0,
-      "Ticks spent on I/O": 0,
-      "Ticks spent on Metadata": 0,
-      "Nr accesses from different locations": 0,
-      "Ticks spent per Access Pattern": {},
-      "I/O sizes per Access Pattern": {}
+      "#Bytes write": 8500,
+      "Ticks spent on I/O": 350,
+      "Ticks spent on Metadata": 50,
+      "Nr accesses from different locations": 16,
+      "Ticks spent per Access Pattern": {
+        "AccessPattern::NONE": 350
+      },
+      "I/O sizes per Access Pattern": {
+        "AccessPattern::NONE": 8500
+      }
     }
   ],
   "Locations": [
     {
       "Location": 0,
       "Per time interval": {
-        "821001389-821038435": "AccessPattern::CONTIGUOUS",
-        "821053417-821066307": "AccessPattern::CONTIGUOUS"
+        "0-7818496": "AccessPattern::STRIDED"
       }
     },
     {
-      "Location": 0,
+      "Location": 1,
       "Per time interval": {
-        "821051345-821094168": "AccessPattern::CONTIGUOUS",
-        "821108070-821120127": "AccessPattern::CONTIGUOUS"
+        "0-9075854": "AccessPattern::CONTIGUOUS"
       }
     },
     {
-      "Location": 0,
+      "Location": 2,
       "Per time interval": {
-        "821094052-821140694": "AccessPattern::CONTIGUOUS",
-        "821153367-821163544": "AccessPattern::CONTIGUOUS"
+        "0-7728339": "AccessPattern::CONTIGUOUS"
       }
     },
     {
-      "Location": 0,
+      "Location": 3,
       "Per time interval": {
-        "820968740-821026878": "AccessPattern::CONTIGUOUS",
-        "821043097-821058812": "AccessPattern::CONTIGUOUS"
+        "0-3762152": "AccessPattern::STRIDED"
+      }
+    },
+    {
+      "Location": 4,
+      "Per time interval": {
+        "0-1036161": "AccessPattern::STRIDED"
+      }
+    },
+    {
+      "Location": 5,
+      "Per time interval": {
+        "0-5449368": "AccessPattern::STRIDED"
+      }
+    },
+    {
+      "Location": 6,
+      "Per time interval": {
+        "0-5785687": "AccessPattern::STRIDED"
+      }
+    },
+    {
+      "Location": 7,
+      "Per time interval": {
+        "0-9164991": "AccessPattern::CONTIGUOUS"
+      }
+    },
+    {
+      "Location": 8,
+      "Per time interval": {
+        "0-4185957": "AccessPattern::STRIDED"
+      }
+    },
+    {
+      "Location": 9,
+      "Per time interval": {
+        "0-4652414": "AccessPattern::CONTIGUOUS"
+      }
+    },
+    {
+      "Location": 10,
+      "Per time interval": {
+        "0-2022698": "AccessPattern::RANDOM"
+      }
+    },
+    {
+      "Location": 11,
+      "Per time interval": {
+        "0-6261415": "AccessPattern::CONTIGUOUS"
+      }
+    },
+    {
+      "Location": 12,
+      "Per time interval": {
+        "0-1841248": "AccessPattern::RANDOM"
+      }
+    },
+    {
+      "Location": 13,
+      "Per time interval": {
+        "0-8999183": "AccessPattern::RANDOM"
+      }
+    },
+    {
+      "Location": 14,
+      "Per time interval": {
+        "0-9910817": "AccessPattern::CONTIGUOUS"
+      }
+    },
+    {
+      "Location": 15,
+      "Per time interval": {
+        "0-1954280": "AccessPattern::RANDOM"
       }
     }
   ],
   "Regions": [
     {
-      "RegionName": "fgetsfgetsfgetsfgets",
+      "RegionName": "compute_kernel",
       "IoParadigm": [],
       "AccessModes": "",
-      "#Bytes read": 1012,
+      "#Bytes read": 0,
       "#Bytes write": 0,
-      "Ticks spent on I/O": 505676,
+      "Ticks spent on I/O": 0,
       "Ticks spent on Metadata": 0,
-      "Top 5 Callees": [
-        {
-          "Region name": "int main(int, char**)",
-          "Source lines": "?-?",
-          "Nr calls": 24
-        }
-      ]
+      "Top 5 Callees": []
     }
   ],
-  "ParallelRegionTime": 1892252095,
+  "ParallelRegionTime": 13246683660,
   "SerialRegionTime": 0,
-  "TotalFunctions": 11,
-  "TotalCalls": 92
+  "TotalFunctions": 10,
+  "TotalCalls": 720
 }
